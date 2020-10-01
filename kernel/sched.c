@@ -61,9 +61,9 @@ extern int system_call(void);           // 系统调用中断处理程序
 // 每个任务(进程)在内核态运行时都有自己的内核态堆栈。这里定义了任务的内核态堆栈结构。
 // 定义任务联合(任务结构成员和stack字符数组成员)。因为一个任务的数据结构与其内核态堆栈
 // 在同一内存页中，所以从堆栈段寄存器ss可以获得其数据端选择符。
-union task_union {
-	struct task_struct task;
-	char stack[PAGE_SIZE];
+union task_union {	//tsz:总共4k
+	struct task_struct task;	//tsz:接近1k，从第低位装起
+	char stack[PAGE_SIZE];	//tsz:最多只能用到3k了，且从高位到低位装载
 };
 
 static union task_union init_task = {INIT_TASK,};   // 定义初始任务的数据
@@ -559,13 +559,14 @@ void sched_init(void)
     // 中；gdt是一个描述符表数组(include/linux/head.h)，实际上对应程序head.s中
     // 全局描述符表基址（_gdt）.因此gtd+FIRST_TSS_ENTRY即为gdt[FIRST_TSS_ENTRY](即为gdt[4]),
     // 也即gdt数组第4项的地址。
-	set_tss_desc(gdt+FIRST_TSS_ENTRY,&(init_task.task.tss));
-	set_ldt_desc(gdt+FIRST_LDT_ENTRY,&(init_task.task.ldt));
-    // 清任务数组和描述符表项(注意 i=1 开始，所以初始任务的描述符还在)。描述符项结构
+	set_tss_desc(gdt+FIRST_TSS_ENTRY,&(init_task.task.tss));	//tsz:从第5个数据开始利用，前三个用了，第4个空着用来隔离。TSS0（进程0的tss段）数据写到了第5个数据段
+	set_ldt_desc(gdt+FIRST_LDT_ENTRY,&(init_task.task.ldt));	//tsz:数据格式：空，进程代码段，进程数据段；FIRST_LDT_ENTRY=FIRST_TSS_ENTRY+1，也就意味着LDT0（进程0的LDT段）写到了第6个数据段
+    //tsz:gdt一项8B
+	// 清任务数组和描述符表项(注意 i=1 开始，所以初始任务的描述符还在)。描述符项结构
     // 定义在文件include/linux/head.h中。
 	p = gdt+2+FIRST_TSS_ENTRY;
 	for(i=1;i<NR_TASKS;i++) {
-		task[i] = NULL;
+		task[i] = NULL;	//tsz:task_struct的指针，拿这个去调度进程
 		p->a=p->b=0;
 		p++;
 		p->a=p->b=0;
