@@ -21,7 +21,7 @@ __asm__ ("movl %%esp,%%eax\n\t" \
 
 #define _set_gate(gate_addr,type,dpl,addr) \
 __asm__ ("movw %%dx,%%ax\n\t" \
-	"movw %0,%%dx\n\t" \
+	"movw %0,%%dx\n\t" \	//tsz: 0 1 2分别对应下面的i o o
 	"movl %%eax,%1\n\t" \
 	"movl %%edx,%2" \
 	: \
