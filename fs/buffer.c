@@ -515,6 +515,7 @@ void buffer_init(long buffer_end)
     // h是指向缓冲头结构的指针，而h+1是指向内存地址连续的下一个缓冲头地址，也可以说
     // 是指向h缓冲头的末端外。为了保证有足够长度的内存来存储一个缓冲头结构，需要b所
     // 指向的内存块地址 >= h 缓冲头的末端，即要求 >= h+1.
+	//tsz:链表
 	while ( (b -= BLOCK_SIZE) >= ((void *) (h+1)) ) {
 		h->b_dev = 0;                       // 使用该缓冲块的设备号
 		h->b_dirt = 0;                      // 脏标志，即缓冲块修改标志
@@ -537,6 +538,7 @@ void buffer_init(long buffer_end)
 	free_list->b_prev_free = h;             // 链表头的b_prev_free指向前一项(即最后一项)。
 	h->b_next_free = free_list;             // h的下一项指针指向第一项，形成一个环链
     // 最后初始化hash表，置表中所有指针为NULL。
+	//tsz:hash表
 	for (i=0;i<NR_HASH;i++)
 		hash_table[i]=NULL;
 }	

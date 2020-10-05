@@ -184,7 +184,7 @@ void main(void)		/* This really IS void, no error here. */
 	buffer_init(buffer_memory_end);
 	hd_init();                              // 硬盘初始化，kernel/blk_drv/hd.c
 	floppy_init();                          // 软驱初始化，kernel/blk_drv/floppy.c
-	sti();                                  // 所有初始化工作都做完了，开启中断
+	sti();                                  // 所有初始化工作都做完了，开启中断	//tsz:开中断，关中断在setup.s的cli()，两个函数中间都在和中断有关的东西打交道
     // 下面过程通过在堆栈中设置的参数，利用中断返回指令启动任务0执行。
 	move_to_user_mode();                    // 移到用户模式下执行
 	if (!fork()) {		/* we count on this going ok */

@@ -63,7 +63,7 @@ extern int system_call(void);           // 系统调用中断处理程序
 // 在同一内存页中，所以从堆栈段寄存器ss可以获得其数据端选择符。
 union task_union {	//tsz:总共4k
 	struct task_struct task;	//tsz:接近1k，从第低位装起
-	char stack[PAGE_SIZE];	//tsz:最多只能用到3k了，且从高位到低位装载
+	char stack[PAGE_SIZE];	//tsz:最多只能用到3k了，且从高位到低位装载，高版本8k
 };
 
 static union task_union init_task = {INIT_TASK,};   // 定义初始任务的数据
@@ -544,7 +544,7 @@ int sys_nice(long increment)
 }
 
 // 内核调度程序的初始化子程序
-void sched_init(void)
+void sched_init(void)	//tsz: scheduling init，即进程调度的初始化
 {
 	int i;
 	struct desc_struct * p;                 // 描述符表结构指针
@@ -565,8 +565,9 @@ void sched_init(void)
 	// 清任务数组和描述符表项(注意 i=1 开始，所以初始任务的描述符还在)。描述符项结构
     // 定义在文件include/linux/head.h中。
 	p = gdt+2+FIRST_TSS_ENTRY;
-	for(i=1;i<NR_TASKS;i++) {
-		task[i] = NULL;	//tsz:task_struct的指针，拿这个去调度进程
+	for(i=1;i<NR_TASKS;i++) {	//tsz: task[0]已经被手动设置
+		task[i] = NULL;	//tsz:task_struct的指针，拿这个去调度进程，64个元素，高版本不限定数量
+			// tsz:task_struct放在task_union中，所以task中的指针指向了task_union的一部分
 		p->a=p->b=0;
 		p++;
 		p->a=p->b=0;
@@ -576,18 +577,19 @@ void sched_init(void)
     // NT标志用于控制程序的递归调用(Nested Task)。当NT置位时，那么当前中断任务执行
     // iret指令时就会引起任务切换。NT指出TSS中的back_link字段是否有效。
 	__asm__("pushfl ; andl $0xffffbfff,(%esp) ; popfl");        // 复位NT标志
-	ltr(0);
-	lldt(0);
+	ltr(0);	//tsz:cpu的寄存器，指向当前进程，当进程切换的时候，就会切换这个寄存器
+	lldt(0);	//tsz:同上
     // 下面代码用于初始化8253定时器。通道0，选择工作方式3，二进制计数方式。通道0的
     // 输出引脚接在中断控制主芯片的IRQ0上，它每10毫秒发出一个IRQ0请求。LATCH是初始
     // 定时计数值。
+	//tsz:继续trap_init中没有做完的工作，设定中断
 	outb_p(0x36,0x43);		/* binary, mode 3, LSB/MSB, ch 0 */
 	outb_p(LATCH & 0xff , 0x40);	/* LSB */
 	outb(LATCH >> 8 , 0x40);	/* MSB */
     // 设置时钟中断处理程序句柄(设置时钟中断门)。修改中断控制器屏蔽码，允许时钟中断。
     // 然后设置系统调用中断门。这两个设置中断描述符表IDT中描述符在宏定义在文件
     // include/asm/system.h中。
-	set_intr_gate(0x20,&timer_interrupt);
+	set_intr_gate(0x20,&timer_interrupt);	//tsz:终端
 	outb(inb_p(0x21)&~0x01,0x21);
-	set_system_gate(0x80,&system_call);
+	set_system_gate(0x80,&system_call);	//tsz:系统调用
 }
