@@ -30,13 +30,13 @@ begdata:
 .bss
 begbss:
 .text
-
+# tsz: #book ----------------------------------------规划内存
 SETUPLEN = 4				! nr of setup-sectors
 BOOTSEG  = 0x07c0			! original address of boot-sector
 INITSEG  = 0x9000			! we move boot here - out of the way
-SETUPSEG = 0x9020			! setup starts here
+SETUPSEG = 0x9020			! setup starts here	# tsz: #book #note 因为bootsect与setup紧连在一起(其实如果执行完bootsect的最后一条指令就是setup的开始，就不用跳转了)
 SYSSEG   = 0x1000			! system loaded at 0x10000 (65536).
-ENDSEG   = SYSSEG + SYSSIZE		! where to stop loading
+ENDSEG   = SYSSEG + SYSSIZE		! where to stop loading	# tsz: #book SYSSIZE=0x30000=196KB，见最上面
 
 ! ROOT_DEV:	0x000 - same type of floppy as boot.
 !		0x301 - first partition on first drive etc
@@ -44,33 +44,34 @@ ROOT_DEV = 0x306
 
 entry _start
 _start:
-	mov	ax,#BOOTSEG
+	mov	ax,#BOOTSEG	# tsz: #book 把bootsect移动到新位置
 	mov	ds,ax
 	mov	ax,#INITSEG
 	mov	es,ax
 	mov	cx,#256
-	sub	si,si
+	sub	si,si	# tsz: #book si=0，因为偏移地址刚好是0
 	sub	di,di
-	rep
+	rep	# tsz: #book 重复的次数已经隐含在对应寄存器中,重复的是下面遗憾指令
 	movw
-	jmpi	go,INITSEG
-go:	mov	ax,cs
+	jmpi	go,INITSEG	# tsz: #book 段间跳转指令，用于x86实模式下。jmp是段内跳转。这里是跳转到INITSEG:go处执行
+		# tsz: #book #skill go的地址应该是相对于BOOTSEG的offset，所以跳转到INITSEG:go处，也刚好是新位置的go处
+go:	mov	ax,cs	# tsz: #book 紧接着对DS、ES、SS、SP也进行修改，都是修改成当前段的数值
 	mov	ds,ax
 	mov	es,ax
 ! put stack at 0x9ff00.
-	mov	ss,ax
+	mov	ss,ax	# tsz: #book #note 第一次设置了栈，这个栈底位置离bootsect其实较远，设置位置其实经过精密计算
 	mov	sp,#0xFF00		! arbitrary value >>512
 
 ! load the setup-sectors directly after the bootblock.
 ! Note that 'es' is already set up.
-
-load_setup:
+# tsz: #book 将下面这个服务程序传给0x13对应的中断服务程序
+load_setup:	# tsz: #book #knowl 赋值寄存器来传参，汇编的常用手法
 	mov	dx,#0x0000		! drive 0, head 0
 	mov	cx,#0x0002		! sector 2, track 0
-	mov	bx,#0x0200		! address = 512, in INITSEG
+	mov	bx,#0x0200		! address = 512, in INITSEG	# tsz: #book 这是意味着从硬盘的第512B开始
 	mov	ax,#0x0200+SETUPLEN	! service 2, nr of sectors
 	int	0x13			! read it
-	jnc	ok_load_setup		! ok - continue
+	jnc	ok_load_setup		! ok - continue	# tsz: #book #ques 下面好像是不成功的时候干的，忘了
 	mov	dx,#0x0000
 	mov	ax,#0x0000		! reset the diskette
 	int	0x13
@@ -113,7 +114,7 @@ ok_load_setup:
 ! defined (!= 0), nothing is done and the given device is used.
 ! Otherwise, either /dev/PS0 (2,28) or /dev/at0 (2,8), depending
 ! on the number of sectors that the BIOS reports currently.
-
+# tsz: #book 检查根设备
 	seg cs
 	mov	ax,root_dev
 	cmp	ax,#0
@@ -136,7 +137,7 @@ root_defined:
 ! the setup-routine loaded directly after
 ! the bootblock:
 
-	jmpi	0,SETUPSEG
+	jmpi	0,SETUPSEG	# tsz: #book 跳转到setup
 
 ! This routine loads the system at address 0x10000, making sure
 ! no 64kB boundaries are crossed. We try to load it as fast as
