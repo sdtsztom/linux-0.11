@@ -168,7 +168,7 @@ void main(void)		/* This really IS void, no error here. */
 		buffer_memory_end = 1*1024*1024;        // 否则设置缓冲区末端=1Mb
 	main_memory_start = buffer_memory_end;
     // 如果在Makefile文件中定义了内存虚拟盘符号RAMDISK,则初始化虚拟盘。此时主内存将减少。
-#ifdef RAMDISK	//tsz:虚拟盘，在makefile中设置虚拟盘的大小，见ramdisk.c
+#ifdef RAMDISK	//tsz: #course虚拟盘，在makefile中设置虚拟盘的大小，见ramdisk.c
 	main_memory_start += rd_init(main_memory_start, RAMDISK*1024);
 #endif
     // 以下是内核进行所有方面的初始化工作。阅读时最好跟着调用的程序深入进去看，若实在
@@ -184,7 +184,7 @@ void main(void)		/* This really IS void, no error here. */
 	buffer_init(buffer_memory_end);
 	hd_init();                              // 硬盘初始化，kernel/blk_drv/hd.c
 	floppy_init();                          // 软驱初始化，kernel/blk_drv/floppy.c
-	sti();                                  // 所有初始化工作都做完了，开启中断	//tsz:开中断，关中断在setup.s的cli()，两个函数中间都在和中断有关的东西打交道
+	sti();                                  // 所有初始化工作都做完了，开启中断	//tsz: #course开中断，关中断在setup.s的cli()，两个函数中间都在和中断有关的东西打交道
     // 下面过程通过在堆栈中设置的参数，利用中断返回指令启动任务0执行。
 	move_to_user_mode();                    // 移到用户模式下执行
 	if (!fork()) {		/* we count on this going ok */

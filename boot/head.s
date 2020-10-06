@@ -17,11 +17,11 @@ pg_dir:
 .globl startup_32
 startup_32:
 	movl $0x10,%eax
-	mov %ax,%ds	# tsz:对齐
+	mov %ax,%ds	# tsz: #course对齐
 	mov %ax,%es
 	mov %ax,%fs
 	mov %ax,%gs
-	lss stack_start,%esp	# tsz:内核的栈，将来会变成用户栈
+	lss stack_start,%esp	# tsz: #course内核的栈，将来会变成用户栈
 	call setup_idt
 	call setup_gdt
 	movl $0x10,%eax		# reload all the segment registers
@@ -113,7 +113,7 @@ setup_gdt:
  * using 4 of them to span 16 Mb of physical memory. People with
  * more than 16MB will have to expand this.
  */
-.org 0x1000	# tsz:页表
+.org 0x1000	# tsz: #course页表
 pg0:
 
 .org 0x2000
@@ -134,7 +134,7 @@ pg3:
 tmp_floppy_area:
 	.fill 1024,1,0
 
-after_page_tables:	# tsz:手工压栈，相当于被main函数call了，那么这个返回时就返回到main函数
+after_page_tables:	# tsz: #course手工压栈，相当于被main函数call了，那么这个返回时就返回到main函数
 	pushl $0		# These are the parameters to main :-)
 	pushl $0
 	pushl $0
@@ -202,7 +202,7 @@ setup_paging:
 	xorl %eax,%eax
 	xorl %edi,%edi			/* pg_dir is at 0x000 */
 	cld;rep;stosl
-	movl $pg0+7,pg_dir		/* set present bit/user r/w */	# tsz:刷页表的属性设置
+	movl $pg0+7,pg_dir		/* set present bit/user r/w */	# tsz: #course刷页表的属性设置
 	movl $pg1+7,pg_dir+4		/*  --------- " " --------- */
 	movl $pg2+7,pg_dir+8		/*  --------- " " --------- */
 	movl $pg3+7,pg_dir+12		/*  --------- " " --------- */
