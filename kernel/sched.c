@@ -63,7 +63,7 @@ extern int system_call(void);           // 系统调用中断处理程序
 // 在同一内存页中，所以从堆栈段寄存器ss可以获得其数据端选择符。
 union task_union {	//tsz: #course 总共4k
 	struct task_struct task;	//tsz: #course 接近1k，从第低位装起
-	char stack[PAGE_SIZE];	//tsz: #course 最多只能用到3k了，且从高位到低位装载，高版本8k
+	char stack[PAGE_SIZE];	//tsz: #course 最多只能用到3k了，且从高位到低位装载，高版本8k,内核栈
 };
 
 static union task_union init_task = {INIT_TASK,};   // 定义初始任务的数据
@@ -89,7 +89,7 @@ struct task_struct * task[NR_TASKS] = {&(init_task.task), }; // 定义任务指�
 // 户态栈。下面结构用于设置堆栈ss:esp(数据的选择符，指针)。ss被设置为内核数据段
 // 选择符(0x10),指针esp指在user_stack数组最后一项后面。这是因为Intel CPU执行堆栈操作
 // 时是先递减堆栈指针sp值，然后在sp指针处保存入栈内容。
-long user_stack [ PAGE_SIZE>>2 ] ;
+long user_stack [ PAGE_SIZE>>2 ] ;	// tsz: #course 用户栈
 
 struct {
 	long * a;

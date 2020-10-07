@@ -21,7 +21,7 @@ startup_32:
 	mov %ax,%es
 	mov %ax,%fs
 	mov %ax,%gs
-	lss stack_start,%esp	# tsz: #course 内核的栈，将来会变成用户栈
+	lss stack_start,%esp	# tsz: #course 内核的栈，将来会变成用户栈(在system.h的move_to_user_mode中将特权变成了3特权)
 	call setup_idt
 	call setup_gdt
 	movl $0x10,%eax		# reload all the segment registers

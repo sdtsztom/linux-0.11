@@ -110,7 +110,7 @@ int copy_mem(int nr,struct task_struct * p)
 // 2. 在刚进入system_call时压入栈的段寄存器ds、es、fs和edx、ecx、ebx；
 // 3. 调用sys_call_table中sys_fork函数时压入栈的返回地址(用参数none表示)；
 // 4. 在调用copy_process()分配任务数组项号。
-int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,
+int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,	// tsz: #impo 右序进栈，所以看到最右边的参数是int80压的栈，还有一些栈是在system_call中压的栈，最后一部分栈是sys_fork压的栈
 		long ebx,long ecx,long edx,
 		long fs,long es,long ds,
 		long eip,long cs,long eflags,long esp,long ss)
@@ -123,7 +123,7 @@ int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,
     // 然后将新任务结构指针放入任务数组的nr项中。其中nr为任务号，由前面
     // find_empty_process()返回。接着把当前进程任务结构内容复制到刚申请到
     // 的内存页面p开始处。
-	p = (struct task_struct *) get_free_page();
+	p = (struct task_struct *) get_free_page();	// tsz: #course 能玩页了，pg打开了，cr3和页目录表初始化好了，mem_map，注意不是用union来转换类型，而是用task_struct
 	if (!p)
 		return -EAGAIN;
 	task[nr] = p;

@@ -56,7 +56,7 @@
 #include <utime.h>
 
 #ifdef __LIBRARY__
-
+// tsz: #course 系统调用号
 #define __NR_setup	0	/* used only by init, to get system going */
 #define __NR_exit	1
 #define __NR_fork	2
@@ -134,9 +134,9 @@
 type name(void) \
 { \
 long __res; \
-__asm__ volatile ("int $0x80" \
+__asm__ volatile ("int $0x80" \	// tsz: #course #think 系统自动压栈,压在了内核栈还是用户栈?应该是后者
 	: "=a" (__res) \
-	: "0" (__NR_##name)); \
+	: "0" (__NR_##name)); \	// tsz: #course fork号码为2
 if (__res >= 0) \
 	return (type) __res; \
 errno = -__res; \

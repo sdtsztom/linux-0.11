@@ -89,8 +89,8 @@ reschedule:
 	jmp schedule
 ### int 0x80 - linux系统调用入口点(调用中断int 0x80,eax 中是调用号)
 .align 2
-system_call:
-	cmpl $nr_system_calls-1,%eax    # 调用号如果超出范围的话就在eax中置-1并退出
+system_call:	# tsz: #course 系统调用的汇编代码
+	cmpl $nr_system_calls-1,%eax    # 调用号如果超出范围的话就在eax中置-1并退出 # tsz: #course nr_system_calls是系统总共的调用数 
 	ja bad_sys_call
 	push %ds                        # 保存原段寄存器值
 	push %es
@@ -112,7 +112,7 @@ system_call:
 # 下面这句操作数的含义是：调用地址=[_sys_call_table + %eax * 4]
 # sys_call_table[]是一个指针数组，定义在include/linux/sys.h中，该指针数组中设置了所有72
 # 个系统调用C处理函数地址。
-	call sys_call_table(,%eax,4)        # 间接调用指定功能C函数
+	call sys_call_table(,%eax,4)        # 间接调用指定功能C函数	# tsz: #course #impo #knowl 这里的**call也会压栈**，这个压栈也成为了后面函数传递的参数，比如这个就对应copy_process的none参数
 	pushl %eax                          # 把系统调用返回值入栈
 # 下面几行查看当前任务的运行状态。如果不在就绪状态(state != 0)就去执行调度程序。如果该
 # 任务在就绪状态，但其时间片已用完(counter = 0),则也去执行调度程序。例如当后台进程组中的
@@ -269,14 +269,14 @@ sys_execve:
 # 已满。然后调用copy_process()复制进程。
 .align 2
 sys_fork:
-	call find_empty_process
+	call find_empty_process	# tsz: #course 这里call的压栈不体现在copy_process的参数中，因为它ret返回并清栈了 
 	testl %eax,%eax             # 在eax中返回进程号pid。若返回负数则退出。
 	js 1f
-	push %gs
+	push %gs	# tsz: #course 为copy_process继续压栈 
 	pushl %esi
 	pushl %edi
 	pushl %ebp
-	pushl %eax
+	pushl %eax	# tsz: #course #knowl find_empty_process的返回，gccc中int一般用eax返回 
 	call copy_process
 	addl $20,%esp               # 丢弃这里所有压栈内容。
 1:	ret

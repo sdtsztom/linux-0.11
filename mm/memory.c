@@ -92,7 +92,7 @@ static unsigned char mem_map [ PAGING_PAGES ] = {0,};
 // 并没有映射到某个进程的地址空间中去。后面的put_page()函数即用于把指定页面映射
 // 到某个进程地址空间中。当然对于内核使用本函数并不需要再使用put_page()进行映射，
 // 因为内核代码和数据空间（16MB）已经对等地映射到物理地址空间。
-unsigned long get_free_page(void)
+unsigned long get_free_page(void)	// tsz: #course #think 从后往前找还是相反?
 {
 register unsigned long __res asm("ax");
 
@@ -701,7 +701,7 @@ void mem_init(long start_mem, long end_mem)
     // 即1MB以上所有物理内存分页后的内存页面数(15MB/4KB = 3840).
 	HIGH_MEMORY = end_mem;                  // 设置内存最高端(16MB)
 	for (i=0 ; i<PAGING_PAGES ; i++)
-		mem_map[i] = USED;
+		mem_map[i] = USED;	// tsz: #course 引用计数
     // 然后计算主内存区起始内存start_mem处页面对应内存映射字节数组中项号i和主内存区页面数。
     // 此时mem_map[]数组的第i项正对应主内存区中第1个页面。最后将主内存区中页面对应的数组项
     // 清零(表示空闲)。对于具有16MB物理内存的系统，mem_map[]中对应4MB-16MB主内存区的项被清零。
