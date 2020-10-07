@@ -29,7 +29,7 @@ begbss:
 
 entry start
 start:
-
+# tsz: #book 载入机器系统信息到0x90000
 ! ok, the read went well so we get current cursor position and save it for
 ! posterity.
 
@@ -105,23 +105,23 @@ is_disk1:
 
 ! now we want to move to protected mode ...
 
-	cli			! no interrupts allowed !
+	cli			! no interrupts allowed !	# tsz: #book 关中断
 
 ! first we move the system to it's rightful place
-
+# tsz: #book 将操作系统移动到0位置
 	mov	ax,#0x0000
 	cld			! 'direction'=0, movs moves forward
 do_move:
 	mov	es,ax		! destination segment
 	add	ax,#0x1000
 	cmp	ax,#0x9000
-	jz	end_move
+	jz	end_move	# tsz: #book 在这里检查完毕后跳出循环
 	mov	ds,ax		! source segment
 	sub	di,di
 	sub	si,si
-	mov 	cx,#0x8000
+	mov 	cx,#0x8000	# tsz: #book 直接移动到机器系统数据的存储位置之前
 	rep
-	movsw
+	movsw	# tsz: #question 和movw有什么区别?
 	jmp	do_move
 
 ! then we load the segment descriptors
@@ -129,17 +129,17 @@ do_move:
 end_move:
 	mov	ax,#SETUPSEG	! right, forgot this at first. didn't work :-)
 	mov	ds,ax
-	lidt	idt_48		! load idt with 0,0
+	lidt	idt_48		! load idt with 0,0	# tsz: #book 用lidt和lgdt加载idt和gdt，对应idt_48、gdt_48参数的含义见下文注释
 	lgdt	gdt_48		! load gdt with whatever appropriate
 
 ! that was painless, now we enable A20
-
+# tsz: #book 打开A20 
 	call	empty_8042
 	mov	al,#0xD1		! command write
 	out	#0x64,al
 	call	empty_8042
 	mov	al,#0xDF		! A20 on
-	out	#0x60,al
+	out	r#0x60,al
 	call	empty_8042
 
 ! well, that went ok, I hope. Now we have to reprogram the interrupts :-(
@@ -149,7 +149,7 @@ end_move:
 ! rectify it afterwards. Thus the bios puts interrupts at 0x08-0x0f,
 ! which is used for the internal hardware interrupts as well. We just
 ! have to reprogram the 8259's, and it isn't fun.
-
+# tsz: #book 编程8259A，建立保护模式下的中断机制
 	mov	al,#0x11		! initialization sequence
 	out	#0x20,al		! send it to 8259A-1
 	.word	0x00eb,0x00eb		! jmp $+2, jmp $+2
@@ -186,9 +186,10 @@ end_move:
 ! things as simple as possible, we do no register set-up or anything,
 ! we let the gnu-compiled 32-bit programs do that. We just jump to
 ! absolute address 0x00000, in 32-bit protected mode.
+# tsz: #book 打开保护模式 
 	mov	ax,#0x0001	! protected mode (PE) bit
-	lmsw	ax		! This is it!
-	jmpi	0,8		! jmp offset 0 of segment 8 (cs)
+	lmsw	ax		! This is it! # tsz: #book lmsw将数据load到cr0 
+	jmpi	0,8		! jmp offset 0 of segment 8 (cs)	# tsz: #book #impo 保护模式下的语法 
 
 ! This routine checks that the keyboard command queue is empty
 ! No timeout is used - if this hangs there is something wrong with
@@ -201,25 +202,26 @@ empty_8042:
 	ret
 
 gdt:
-	.word	0,0,0,0		! dummy
+	.word	0,0,0,0		! dummy	# tsz: #book 第一项为空,4 word一项，即8B一项
 
-	.word	0x07FF		! 8Mb - limit=2047 (2048*4096=8Mb)
+	.word	0x07FF		! 8Mb - limit=2047 (2048*4096=8Mb)	# tsz: #book 内核代码段描述符 
 	.word	0x0000		! base address=0
 	.word	0x9A00		! code read/exec
 	.word	0x00C0		! granularity=4096, 386
 
-	.word	0x07FF		! 8Mb - limit=2047 (2048*4096=8Mb)
+	.word	0x07FF		! 8Mb - limit=2047 (2048*4096=8Mb)	# tsz: #book 内核数据段描述符 
 	.word	0x0000		! base address=0
 	.word	0x9200		! data read/write
 	.word	0x00C0		! granularity=4096, 386
 
 idt_48:
-	.word	0			! idt limit=0
+	.word	0			! idt limit=0	# tsz: #book 见下
 	.word	0,0			! idt base=0L
 
 gdt_48:
-	.word	0x800		! gdt limit=2048, 256 GDT entries
-	.word	512+gdt,0x9	! gdt base = 0X9xxxx
+	.word	0x800		! gdt limit=2048, 256 GDT entries	# tsz: #book 8B一项，这一项的数据是限长
+	.word	512+gdt,0x9	! gdt base = 0X9xxxx # tsz: #book 这一项分别是offset和base，0x90000+512刚好是setup的开始地址，再加个gdt offset，刚好是上面的gdt数据区 
+	# // tsz: #note 只是传给了地址，数据都放在对应的位置，比如中断描述符表在内核中，全局描述符表在setup中
 	
 .text
 endtext:
@@ -227,3 +229,4 @@ endtext:
 enddata:
 .bss
 endbss:
+   
