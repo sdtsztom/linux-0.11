@@ -124,7 +124,7 @@ struct task_struct {
 /* filp */	{NULL,}, \
 	{ \
 		{0,0}, \
-/* ldt */	{0x9f,0xc0fa00}, \	//tsz: #course#think 算算这个地址在哪?
+/* ldt */	{0x9f,0xc0fa00}, \	//tsz: #course #think 算算这个地址在哪?
 		{0x9f,0xc0f200}, \
 	}, \
 /*tss*/	{0,PAGE_SIZE+(long)&init_task,0x10,0,0,0,0,(long)&pg_dir,\
