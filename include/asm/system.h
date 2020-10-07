@@ -1,13 +1,13 @@
 #define move_to_user_mode() \
-__asm__ ("movl %%esp,%%eax\n\t" \	//tsz: #course手动压栈，因为CPU压栈只能发生从3翻到0特权，因为要变成3特权，只能手动压栈
+__asm__ ("movl %%esp,%%eax\n\t" \	//tsz: #course 手动压栈，因为CPU压栈只能发生从3翻到0特权，因为要变成3特权，只能手动压栈
 	"pushl $0x17\n\t" \
 	"pushl %%eax\n\t" \
 	"pushfl\n\t" \
 	"pushl $0x0f\n\t" \
-	"pushl $1f\n\t" \	//tsz: #course标号， f表示后面的1，b表示前面的1
-	"iret\n" \	//tsz: #courseret是普通函数返回，iret是中断返回，后面开始交给进程0，因为task指针数组、ltr、lldt都指向进程0，（说明进程0是3特权）
-		//tsz: #course从此开始可以开始调度了，因为必要的中断都设置完成了
-	"1:\tmovl $0x17,%%eax\n\t" \	//tsz: #course从这开始是进程0的用户态
+	"pushl $1f\n\t" \	//tsz: #course 标号， f表示后面的1，b表示前面的1
+	"iret\n" \	//tsz: #course ret是普通函数返回，iret是中断返回，后面开始交给进程0，因为task指针数组、ltr、lldt都指向进程0，（说明进程0是3特权）
+		//tsz: #course 从此开始可以开始调度了，因为必要的中断都设置完成了
+	"1:\tmovl $0x17,%%eax\n\t" \	//tsz: #course 从这开始是进程0的用户态
 	"movw %%ax,%%ds\n\t" \
 	"movw %%ax,%%es\n\t" \
 	"movw %%ax,%%fs\n\t" \

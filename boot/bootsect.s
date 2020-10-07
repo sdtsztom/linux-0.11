@@ -51,7 +51,7 @@ _start:
 	mov	cx,#256
 	sub	si,si	# tsz: #book si=0，因为偏移地址刚好是0
 	sub	di,di
-	rep	# tsz: #book 重复的次数已经隐含在对应寄存器中,重复的是下面遗憾指令
+	rep	# tsz: #book 重复的次数已经隐含在对应寄存器cx中,重复的是下面遗憾指令
 	movw
 	jmpi	go,INITSEG	# tsz: #book 段间跳转指令，用于x86实模式下。jmp是段内跳转。这里是跳转到INITSEG:go处执行
 		# tsz: #book #skill go的地址应该是相对于BOOTSEG的offset，所以跳转到INITSEG:go处，也刚好是新位置的go处

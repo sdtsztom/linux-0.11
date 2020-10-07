@@ -52,13 +52,13 @@ struct i387_struct {
 
 struct tss_struct {
 	long	back_link;	/* 16 high bits zero */
-	long	esp0;	//tsz: #course好像对应4个特权的栈
+	long	esp0;	//tsz: #course 好像对应4个特权的栈
 	long	ss0;		/* 16 high bits zero */
 	long	esp1;
 	long	ss1;		/* 16 high bits zero */
 	long	esp2;
 	long	ss2;		/* 16 high bits zero */
-	long	cr3;	//tsz: #course页目录表的基址
+	long	cr3;	//tsz: #course 页目录表的基址
 	long	eip;
 	long	eflags;
 	long	eax,ecx,edx,ebx;
@@ -112,7 +112,7 @@ struct task_struct {
  *  INIT_TASK is used to set up the first task table, touch at
  * your own risk!. Base=0, limit=0x9ffff (=640kB)
  */
-#define INIT_TASK \	//tsz: #course手写创建进程0
+#define INIT_TASK \	//tsz: #course 手写创建进程0
 /* state etc */	{ 0,15,15, \
 /* signals */	0,{{},},0, \
 /* ec,brk... */	0,0,0,0,0,0, \
@@ -128,7 +128,7 @@ struct task_struct {
 		{0x9f,0xc0f200}, \
 	}, \
 /*tss*/	{0,PAGE_SIZE+(long)&init_task,0x10,0,0,0,0,(long)&pg_dir,\
-	 0,0,0,0,0,0,0,0, \	//tsz: #course第二个0是关中断的0
+	 0,0,0,0,0,0,0,0, \	//tsz: #course 第二个0是关中断的0
 	 0,0,0x17,0x17,0x17,0x17,0x17,0x17, \
 	 _LDT(0),0x80000000, \
 		{} \
