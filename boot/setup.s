@@ -129,7 +129,7 @@ do_move:
 end_move:
 	mov	ax,#SETUPSEG	! right, forgot this at first. didn't work :-)
 	mov	ds,ax
-	lidt	idt_48		! load idt with 0,0	# tsz: #book 用lidt和lgdt加载idt和gdt，对应idt_48、gdt_48参数的含义见下文注释
+	lidt	idt_48		! load idt with 0,0	# tsz: #book 用lidt和lgdt加载idt和gdt的地址到对应的寄存器，对应idt_48、gdt_48参数的含义见下文注释
 	lgdt	gdt_48		! load gdt with whatever appropriate
 
 ! that was painless, now we enable A20
@@ -189,7 +189,7 @@ end_move:
 # tsz: #book 打开保护模式 
 	mov	ax,#0x0001	! protected mode (PE) bit
 	lmsw	ax		! This is it! # tsz: #book lmsw将数据load到cr0 
-	jmpi	0,8		! jmp offset 0 of segment 8 (cs)	# tsz: #book #impo 保护模式下的语法 
+	jmpi	0,8		! jmp offset 0 of segment 8 (cs)	# tsz: #book #note #impo 保护模式下的语法，注意此时放到CS中的数据不再是代码段机制，而是代码段选择符了
 
 ! This routine checks that the keyboard command queue is empty
 ! No timeout is used - if this hangs there is something wrong with
@@ -215,7 +215,7 @@ gdt:
 	.word	0x00C0		! granularity=4096, 386
 
 idt_48:
-	.word	0			! idt limit=0	# tsz: #book 见下
+	.word	0			! idt limit=0	# tsz: #book 见下，设定到0位置
 	.word	0,0			! idt base=0L
 
 gdt_48:

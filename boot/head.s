@@ -13,15 +13,15 @@
  */
 .text
 .globl idt,gdt,pg_dir,tmp_floppy_area
-pg_dir:
+pg_dir:	# tsz: #book 标志内核分页机制完成后的内核起始位置
 .globl startup_32
 startup_32:
-	movl $0x10,%eax
-	mov %ax,%ds	# tsz: #course 对齐
+	movl $0x10,%eax	# tsz: #book 这4个寄存器都指向内核数据段
+	mov %ax,%ds	# tsz: #course #ques 对齐 什么意思?是不是记错了
 	mov %ax,%es
 	mov %ax,%fs
 	mov %ax,%gs
-	lss stack_start,%esp	# tsz: #course 内核的栈，将来会变成用户栈(在system.h的move_to_user_mode中将特权变成了3特权)
+	lss stack_start,%esp	# tsz: #book #course 定义在sched.c中，内核的栈，将来会变成用户栈(在system.h的move_to_user_mode中将特权变成了3特权)
 	call setup_idt
 	call setup_gdt
 	movl $0x10,%eax		# reload all the segment registers
@@ -78,14 +78,15 @@ check_x87:
  *  written by the page tables.
  */
 setup_idt:
-	lea ignore_int,%edx
-	movl $0x00080000,%eax
-	movw %dx,%ax		/* selector = 0x0008 = cs */
-	movw $0x8E00,%dx	/* interrupt gate - dpl=0, present */
+	lea ignore_int,%edx	# tsz: #personal lea参考摘录，同时要注意edx、dx、dl、dh区别
+		# tsz: #personal 可以看到后面对ignore_int的地址进行了复杂的拆分操作(可见书中图1-29)，这是因为要是IDT表项中的offset=ignore_int，而offset的位置分布在0、1、6、7B，所以下面要进行拆分
+	movl $0x00080000,%eax	# tsz: #personal movl是mov32bit数据，movw是mov一个字，即2B
+	movw %dx,%ax		/* selector = 0x0008 = cs */	# tsz: #book 段选择子是8 
+	movw $0x8E00,%dx	/* interrupt gate - dpl=0, present */	# tsz: #book 这些位包含着很多信息(见书)，其中重要的是dpl=0(0特权)
 
-	lea idt,%edi
+	lea idt,%edi	# tsz #personal idt的flag在后面
 	mov $256,%ecx
-rp_sidt:
+rp_sidt:	# tsz: #personal #note 还没有ret，所以程序还会继续往下执行 
 	movl %eax,(%edi)
 	movl %edx,4(%edi)
 	addl $8,%edi

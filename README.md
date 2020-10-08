@@ -11,7 +11,7 @@ Linus曾经说过：RTFSC - Read The Fucking Source Code.
 
 # New fork Repo README
 tag为`book`的注释参考《Linux内核设计的艺术》
-## 我的注释tag
+## tags汇总
 - course
 - book
 - personal
