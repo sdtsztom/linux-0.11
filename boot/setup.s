@@ -189,7 +189,7 @@ end_move:
 # tsz: #book 打开保护模式 
 	mov	ax,#0x0001	! protected mode (PE) bit
 	lmsw	ax		! This is it! # tsz: #book lmsw将数据load到cr0 
-	jmpi	0,8		! jmp offset 0 of segment 8 (cs)	# tsz: #book #note #impo 保护模式下的语法，注意此时放到CS中的数据不再是代码段机制，而是代码段选择符了
+	jmpi	0,8		! jmp offset 0 of segment 8 (cs)	# tsz: #book #note #impo 保护模式下的语法，注意此时放到CS中的数据根据对应gdt来装载
 
 ! This routine checks that the keyboard command queue is empty
 ! No timeout is used - if this hangs there is something wrong with
@@ -201,25 +201,26 @@ empty_8042:
 	jnz	empty_8042	! yes - loop
 	ret
 
-gdt:
+gdt:	# tsz: #book gdt设置了3项：空，内核代码段，内核数据段，idt没有设置表项 
 	.word	0,0,0,0		! dummy	# tsz: #book 第一项为空,4 word一项，即8B一项
 
-	.word	0x07FF		! 8Mb - limit=2047 (2048*4096=8Mb)	# tsz: #book 内核代码段描述符 
+	.word	0x07FF		! 8Mb - limit=2047 (2048*4096=8Mb)	# tsz: #book 内核代码段描述符，限长8MB
 	.word	0x0000		! base address=0
 	.word	0x9A00		! code read/exec
 	.word	0x00C0		! granularity=4096, 386
 
-	.word	0x07FF		! 8Mb - limit=2047 (2048*4096=8Mb)	# tsz: #book 内核数据段描述符 
+	.word	0x07FF		! 8Mb - limit=2047 (2048*4096=8Mb)	# tsz: #book 内核数据段描述符，限长8MB
 	.word	0x0000		! base address=0
 	.word	0x9200		! data read/write
 	.word	0x00C0		! granularity=4096, 386
 
 idt_48:
-	.word	0			! idt limit=0	# tsz: #book 见下，设定到0位置
+	.word	0			! idt limit=0	# tsz: #book 见下，基址为0位置，限长0
 	.word	0,0			! idt base=0L
 
-gdt_48:
-	.word	0x800		! gdt limit=2048, 256 GDT entries	# tsz: #book 8B一项，这一项的数据是限长
+gdt_48:	# tsz: #personal 说明gdtr式48bit的，其中前16bit是gdt表的限长，后32bit是gdt表的基址
+	# tsz: #personal 这里其实应当是一个gdt描述符，后面在head.s中也是这样命名的;这里有限长，其值就是gdt表的限长，gdt表中的每一项所指向的段也有限长，其限长是限长值*4KB(页大小)
+	.word	0x800		! gdt limit=2048, 256 GDT entries	# tsz: #book gdt表的限长，2KB，256项，8B一项
 	.word	512+gdt,0x9	! gdt base = 0X9xxxx # tsz: #book 这一项分别是offset和base，0x90000+512刚好是setup的开始地址，再加个gdt offset，刚好是上面的gdt数据区 
 	# // tsz: #note 只是传给了地址，数据都放在对应的位置，比如中断描述符表在内核中，全局描述符表在setup中
 	

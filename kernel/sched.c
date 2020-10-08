@@ -89,12 +89,12 @@ struct task_struct * task[NR_TASKS] = {&(init_task.task), }; // 定义任务指�
 // 户态栈。下面结构用于设置堆栈ss:esp(数据的选择符，指针)。ss被设置为内核数据段
 // 选择符(0x10),指针esp指在user_stack数组最后一项后面。这是因为Intel CPU执行堆栈操作
 // 时是先递减堆栈指针sp值，然后在sp指针处保存入栈内容。
-long user_stack [ PAGE_SIZE>>2 ] ;	// tsz: #course 用户栈，4KB，1024项，4B一项，起始位置在0x1E25C
+long user_stack [ PAGE_SIZE>>2 ] ;	// tsz: #course 内核栈，后来变成用户栈，4KB(占用一个页)，1024项，4B一项，起始位置在0x1E25C
 
 struct {
 	long * a;
 	short b;
-	} stack_start = { & user_stack [PAGE_SIZE>>2] , 0x10 }; // tsz: #book 指向一个user_stack的最后一项，前32位赋值给了sp，后16位给了ss
+	} stack_start = { & user_stack [PAGE_SIZE>>2] , 0x10 }; // tsz: #book 指向一个user_stack的最后一项，前32位赋值给了sp，后16位是段选择子给了ss
 /*
  *  'math_state_restore()' saves the current math information in the
  * old math state array, and gets the new ones from the current task

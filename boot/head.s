@@ -16,25 +16,26 @@
 pg_dir:	# tsz: #book 标志内核分页机制完成后的内核起始位置
 .globl startup_32
 startup_32:
-	movl $0x10,%eax	# tsz: #book 这4个寄存器都指向内核数据段
+	movl $0x10,%eax	# tsz: #book 刚进入保护模式，第一次设置这些寄存器，这4个寄存器都指向内核数据段，0x10是gdt的第三项，即内核数据段
 	mov %ax,%ds	# tsz: #course #ques 对齐 什么意思?是不是记错了
 	mov %ax,%es
 	mov %ax,%fs
 	mov %ax,%gs
-	lss stack_start,%esp	# tsz: #book #course 定义在sched.c中，内核的栈，将来会变成用户栈(在system.h的move_to_user_mode中将特权变成了3特权)
+	lss stack_start,%esp	# tsz: #book #course stack_start(是两个数据的组合)                                                                                        定义在sched.c中，内核的栈，将来会变成用户栈(在system.h的move_to_user_mode中将特权变成了3特权)
+		# tsz: #book #personal 还有对应的LDS、LES、LGS、LFS；lss应该其实也可以用上面的方法赋值，不过这里要要赋值ss和sp，一句顶两句
 	call setup_idt
 	call setup_gdt
-	movl $0x10,%eax		# reload all the segment registers
+	movl $0x10,%eax		# reload all the segment registers	# tsz: #book #personal #note 因为段限长的改变，需要重新load；说明段寄存器中保存有关于限长的数据?
 	mov %ax,%ds		# after changing gdt. CS was already
 	mov %ax,%es		# reloaded in 'setup_gdt'
 	mov %ax,%fs
 	mov %ax,%gs
 	lss stack_start,%esp
 	xorl %eax,%eax
-1:	incl %eax		# check that A20 really IS enabled
+1:	incl %eax		# check that A20 really IS enabled 
 	movl %eax,0x000000	# loop forever if it isn't
 	cmpl %eax,0x100000
-	je 1b
+	je 1b	# tsz: #book 没打开则一直循环
 
 /*
  * NOTE! 486 should set bit 16, to check for write-protect in supervisor
@@ -42,13 +43,14 @@ startup_32:
  * 486 users probably want to set the NE (#5) bit also, so as to use
  * int 16 for math errors.
  */
+ # tsz: #book 检查数学协处理器 
 	movl %cr0,%eax		# check math chip
 	andl $0x80000011,%eax	# Save PG,PE,ET
 /* "orl $0x10020,%eax" here for 486 might be good */
 	orl $2,%eax		# set MP
 	movl %eax,%cr0
 	call check_x87
-	jmp after_page_tables
+	jmp after_page_tables	# tsz: #book 开始压栈main 
 
 /*
  * We depend on ET to be correct. This checks for 287/387.
@@ -87,12 +89,12 @@ setup_idt:
 	lea idt,%edi	# tsz #personal idt的flag在后面
 	mov $256,%ecx
 rp_sidt:	# tsz: #personal #note 还没有ret，所以程序还会继续往下执行 
-	movl %eax,(%edi)
+	movl %eax,(%edi)	# tsz: #book eax、edx构建出一个完整的中断描述符(64bit)，然后将其写入idt位置中
 	movl %edx,4(%edi)
 	addl $8,%edi
 	dec %ecx
-	jne rp_sidt
-	lidt idt_descr
+	jne rp_sidt	# tsz: #personal 重复256此，填满256个表项
+	lidt idt_descr # tsz: #personal 重新装载新的idt表描述符
 	ret
 
 /*
@@ -135,11 +137,11 @@ pg3:
 tmp_floppy_area:
 	.fill 1024,1,0
 
-after_page_tables:	# tsz: #course 手工压栈，相当于被main函数call了，那么这个返回时就返回到main函数
-	pushl $0		# These are the parameters to main :-)
+after_page_tables:	# tsz: #course 手工压栈，相当于被main函数call了，那么ret之后就返回到main函数
+	pushl $0		# These are the parameters to main :-)	# tsz: #book #personal 这些参数是envp、argv、argc；分别为环境变量、参数值，参数数(本来至少为1，是程序名)
 	pushl $0
 	pushl $0
-	pushl $L6		# return address for main, if it decides to.
+	pushl $L6		# return address for main, if it decides to.	# tsz: #book 若main退出会跳到L6
 	pushl $main
 	jmp setup_paging
 L6:
@@ -150,7 +152,7 @@ L6:
 int_msg:
 	.asciz "Unknown interrupt\n\r"
 .align 2
-ignore_int:
+ignore_int:	# tsz: #personal 其内容为中断对应的操作 
 	pushl %eax
 	pushl %ecx
 	pushl %edx
@@ -197,24 +199,24 @@ ignore_int:
  * some kind of marker at them (search for "16Mb"), but I
  * won't guarantee that's all :-( )
  */
-.align 2
+.align 2	# tsz: #book2 按4字节方式对齐
 setup_paging:
 	movl $1024*5,%ecx		/* 5 pages - pg_dir+4 page tables */
 	xorl %eax,%eax
 	xorl %edi,%edi			/* pg_dir is at 0x000 */
-	cld;rep;stosl
-	movl $pg0+7,pg_dir		/* set present bit/user r/w */	# tsz: #course 刷页表的属性设置
+	cld;rep;stosl	# tsz: #personal cld设置edi为自增方向；stosl使得eax中的内容保存到es:di的位置，并使edi每次自增4B,重复1024*5次，也就是以上一段完成了内存清零
+	movl $pg0+7,pg_dir		/* set present bit/user r/w */	# tsz: #course #ques 在页目录表中刷各个页表的属性设置，那三位是u/s;r/w,present，111表示用户u,rw,p;000代表内核s,r,不存在;明明是内核的页表，为什么设置成用户u?
 	movl $pg1+7,pg_dir+4		/*  --------- " " --------- */
 	movl $pg2+7,pg_dir+8		/*  --------- " " --------- */
 	movl $pg3+7,pg_dir+12		/*  --------- " " --------- */
-	movl $pg3+4092,%edi
-	movl $0xfff007,%eax		/*  16Mb - 4096 + 7 (r/w user,p) */
-	std
+	movl $pg3+4092,%edi	# tsz: #personal 移到最后一个页表项 
+	movl $0xfff007,%eax		/*  16Mb - 4096 + 7 (r/w user,p) */	# tsz: #personal 最后一个页表项的值(指向的地址和属性)
+	std	# tsz: #personal 设置edi自减方向
 1:	stosl			/* fill pages backwards - more efficient :-) */
-	subl $0x1000,%eax
-	jge 1b
+	subl $0x1000,%eax	# tsz: #personal 指向的地址-4k 
+	jge 1b	# tsz: #book2 小于0说明全部填好了 
 	xorl %eax,%eax		/* pg_dir is at 0x0000 */
-	movl %eax,%cr3		/* cr3 - page directory start */
+	movl %eax,%cr3		/* cr3 - page directory start */	# tsz: #book CR3高20位指向页目录表基地址 
 	movl %cr0,%eax
 	orl $0x80000000,%eax
 	movl %eax,%cr0		/* set paging (PG) bit */
@@ -222,7 +224,7 @@ setup_paging:
 
 .align 2
 .word 0
-idt_descr:
+idt_descr:	# tsz: #personal 新的idt描述符，和gdt一样大、一样的表项大小、一样的表项数量，指向了新创建的idt表
 	.word 256*8-1		# idt contains 256 entries
 	.long idt
 .align 2
@@ -232,10 +234,10 @@ gdt_descr:
 	.long gdt		# magic number, but it works for me :^)
 
 	.align 8
-idt:	.fill 256,8,0		# idt is uninitialized
+idt:	.fill 256,8,0		# idt is uninitialized	# tsz: #book #personal 新构建的idt表，每个表项都未初始化，起始位置0x54AA；.fill repeat,size,value；故意将idt、gdt设置在这么后面，防止被覆盖
 
-gdt:	.quad 0x0000000000000000	/* NULL descriptor */
-	.quad 0x00c09a0000000fff	/* 16Mb */
+gdt:	.quad 0x0000000000000000	/* NULL descriptor */	# tsz: #book #personal 起始位置为0x54B2；.quad定义一个4字(8B) 
+	.quad 0x00c09a0000000fff	/* 16Mb */	# tsz: #book 段限长变成了16MB
 	.quad 0x00c0920000000fff	/* 16Mb */
-	.quad 0x0000000000000000	/* TEMPORARY - don't use */
-	.fill 252,8,0			/* space for LDT's and TSS's etc */
+	.quad 0x0000000000000000	/* TEMPORARY - don't use */	# tsz: #question 为什么多此一举?
+	.fill 252,8,0			/* space for LDT's and TSS's etc */	# tsz: #personal 剩下项填0
