@@ -142,7 +142,7 @@ after_page_tables:	# tsz: #course 手工压栈，相当于被main函数call了�
 	pushl $0
 	pushl $0
 	pushl $L6		# return address for main, if it decides to.	# tsz: #book 若main退出会跳到L6
-	pushl $main
+	pushl $main	# tsz: #personal 这个地址应该到时候由编译器放入
 	jmp setup_paging
 L6:
 	jmp L6			# main should never return here, but

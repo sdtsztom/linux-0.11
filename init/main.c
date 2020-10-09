@@ -88,8 +88,8 @@ extern long startup_time;       // 内核启动时间（开机时间）（秒）
 // 的内容。由于内核代码段被映射到从物理地址零开始的地方，因此这些线性地址
 // 正好也是对应的物理地址。这些指定地址处内存值的含义请参见setup程序读取并保存的参数。
 #define EXT_MEM_K (*(unsigned short *)0x90002)
-#define DRIVE_INFO (*(struct drive_info *)0x90080)
-#define ORIG_ROOT_DEV (*(unsigned short *)0x901FC)
+#define DRIVE_INFO (*(struct drive_info *)0x90080)	// tsz: #book 硬盘参数表
+#define ORIG_ROOT_DEV (*(unsigned short *)0x901FC)	// tsz: #book 根设备
 
 /*
  * Yeah, yeah, it's ugly, but I cannot find how to do this correctly
