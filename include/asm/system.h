@@ -22,16 +22,16 @@ __asm__ ("movl %%esp,%%eax\n\t" \	//tsz: #course 手动压栈，压了ss,esp,efl
 
 #define iret() __asm__ ("iret"::)
 
-#define _set_gate(gate_addr,type,dpl,addr) \
-__asm__ ("movw %%dx,%%ax\n\t" \
-	"movw %0,%%dx\n\t" \	//tsz: #course 0 1 2分别对应下面的i o o
+#define _set_gate(gate_addr,type,dpl,addr) \	// tsz: #book gate_addr已经从项数转变成了地址，type是15，dpl是0
+__asm__ ("movw %%dx,%%ax\n\t" \	// tsz: #personal gcc内联汇编
+	"movw %0,%%dx\n\t" \	//tsz: #course 0 1 2分别对应下面的i o o行
 	"movl %%eax,%1\n\t" \
 	"movl %%edx,%2" \
-	: \
-	: "i" ((short) (0x8000+(dpl<<13)+(type<<8))), \
-	"o" (*((char *) (gate_addr))), \
-	"o" (*(4+(char *) (gate_addr))), \
-	"d" ((char *) (addr)),"a" (0x00080000))
+	: \	// tsz: #book 这里放输出，下面冒号后面放输入
+	: "i" ((short) (0x8000+(dpl<<13)+(type<<8))), \	// tsz: #book i代表立即数，这里的8是用来使得存在位置1
+	"o" (*((char *) (gate_addr))), \	// tsz: #book o代表内存地址，这是idt描述符前32bit的地址
+	"o" (*(4+(char *) (gate_addr))), \	// tsz: #book idt描述符后32bit的地址
+	"d" ((char *) (addr)),"a" (0x00080000))	// tsz: #book 分别对应edx与eax，前2B是用来赋值给段选择子的，8意味着内核特权，内核代码段
 
 #define set_intr_gate(n,addr) \
 	_set_gate(&idt[n],14,0,addr)

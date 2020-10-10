@@ -206,23 +206,23 @@ void trap_init(void)
 	int i;
 
     // 设置除操作出错的中断向量值。
-	set_trap_gate(0,&divide_error);
-	set_trap_gate(1,&debug);
-	set_trap_gate(2,&nmi);
+	set_trap_gate(0,&divide_error);	// tsz: #book 除0
+	set_trap_gate(1,&debug);	// tsz: #book 单步调试
+	set_trap_gate(2,&nmi);	// tsz: #book 不可屏蔽中断
 	set_system_gate(3,&int3);	/* int3-5 can be called from all */
 	set_system_gate(4,&overflow);
-	set_system_gate(5,&bounds);
-	set_trap_gate(6,&invalid_op);
+	set_system_gate(5,&bounds);	// tsz: #book 边界检查错误
+	set_trap_gate(6,&invalid_op);	// tsz: #book 无效指令
 	set_trap_gate(7,&device_not_available);
-	set_trap_gate(8,&double_fault);
-	set_trap_gate(9,&coprocessor_segment_overrun);
+	set_trap_gate(8,&double_fault);	// tsz: #book 双故障
+	set_trap_gate(9,&coprocessor_segment_overrun);	// tsz: #book 协处理器段越界
 	set_trap_gate(10,&invalid_TSS);
-	set_trap_gate(11,&segment_not_present);
-	set_trap_gate(12,&stack_segment);
-	set_trap_gate(13,&general_protection);
-	set_trap_gate(14,&page_fault);
+	set_trap_gate(11,&segment_not_present);	// tsz: #book 段不存在
+	set_trap_gate(12,&stack_segment);	// tsz: #book 栈异常
+	set_trap_gate(13,&general_protection);	// tsz: #book 一般性保护异常
+	set_trap_gate(14,&page_fault);	// tsz: #book 缺页
 	set_trap_gate(15,&reserved);
-	set_trap_gate(16,&coprocessor_error);
+	set_trap_gate(16,&coprocessor_error);	// tsz: #book 协处理器错误
     // 下面把int17-47的陷阱门先均设置为reserved,以后各硬件初始化时会重新设置自己的陷阱门。
 	for (i=17;i<48;i++)
 		set_trap_gate(i,&reserved);

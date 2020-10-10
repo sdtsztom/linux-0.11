@@ -53,7 +53,7 @@ __asm__("movl %%eax,%%cr3"::"a" (0))
 // 内存低端(1MB)
 #define LOW_MEM 0x100000
 // 分页内存15 MB，主内存区最多15M.
-#define PAGING_MEMORY (15*1024*1024)
+#define PAGING_MEMORY (15*1024*1024)	// tsz: #personal 内存管理大小的限制2
 // 分页后的物理内存页面数（3840）
 #define PAGING_PAGES (PAGING_MEMORY>>12)
 // 指定地址映射为页号
@@ -701,11 +701,11 @@ void mem_init(long start_mem, long end_mem)
     // 即1MB以上所有物理内存分页后的内存页面数(15MB/4KB = 3840).
 	HIGH_MEMORY = end_mem;                  // 设置内存最高端(16MB)
 	for (i=0 ; i<PAGING_PAGES ; i++)
-		mem_map[i] = USED;	// tsz: #course 引用计数
+		mem_map[i] = USED;	// tsz: #course #personal 引用计数，USED为100;mem_map大小是按照可管理的内存15MB计算出来的
     // 然后计算主内存区起始内存start_mem处页面对应内存映射字节数组中项号i和主内存区页面数。
     // 此时mem_map[]数组的第i项正对应主内存区中第1个页面。最后将主内存区中页面对应的数组项
     // 清零(表示空闲)。对于具有16MB物理内存的系统，mem_map[]中对应4MB-16MB主内存区的项被清零。
-	i = MAP_NR(start_mem);      // 主内存区其实位置处页面号
+	i = MAP_NR(start_mem);      // 主内存区其实位置处页面号	// tsz: #personal MAP_NR将地址映射为页号
 	end_mem -= start_mem;
 	end_mem >>= 12;             // 主内存区中的总页面数
 	while (end_mem-->0)

@@ -54,11 +54,11 @@ long rd_init(long mem_start, int length)
 	int	i;
 	char	*cp;
 
-	blk_dev[MAJOR_NR].request_fn = DEVICE_REQUEST;
+	blk_dev[MAJOR_NR].request_fn = DEVICE_REQUEST;	// tsz: #book 挂载了函数，函数定义了读写操作；blk_dev在ll_rw_blk.c中，有7项，但第一项为空
 	rd_start = (char *) mem_start;
 	rd_length = length;
 	cp = rd_start;
-	for (i=0; i < length; i++)
+	for (i=0; i < length; i++)	// tsz: #book 清零
 		*cp++ = '\0';
 	return(length);
 }
