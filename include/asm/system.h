@@ -1,15 +1,15 @@
 #define move_to_user_mode() \
 __asm__ ("movl %%esp,%%eax\n\t" \	//tsz: #course 手动压栈，ss,esp,eflags,cs,eip按序进栈,因为CPU压栈只能发生从3翻到0特权，因为要变成3特权，只能手动压栈
 	// tsz: #personal AT&T汇编格式，dest在后面
-	"pushl $0x17\n\t" \
+	"pushl $0x17\n\t" \	// tsz: #personal 0x17，特权级变成用户态
 	"pushl %%eax\n\t" \
-	"pushfl\n\t" \
+	"pushfl\n\t" \	// tsz: #personal pushfl，将eflags入栈
 	"pushl $0x0f\n\t" \
 	"pushl $1f\n\t" \	//tsz: #course 标号， f表示后面的1，b表示前面的1
 	"iret\n" \	//tsz: #course ret是普通函数返回，iret是中断返回，后面开始交给进程0；iret会将那5个数值自动赋值给对应寄存器；因为task指针数组、ltr、lldt都指向进程0(在sched.c的sched_init函数中)(同时此时task中也只有task0)，（说明进程0是3特权）
 		//tsz: #course 从此开始可以开始调度了，因为必要的中断都设置完成了
 		// tsz: #course #think iret返回并不一定就能反转特权，看trap.c中的trap_init
-	"1:\tmovl $0x17,%%eax\n\t" \	//tsz: #course 从这开始是进程0的用户态
+	"1:\tmovl $0x17,%%eax\n\t" \	//tsz: #course 从这开始是进程0的用户态；#personal 因为特权级变了，将所有值要重新复制一遍给ds,es,fs,gs
 	"movw %%ax,%%ds\n\t" \
 	"movw %%ax,%%es\n\t" \
 	"movw %%ax,%%fs\n\t" \
