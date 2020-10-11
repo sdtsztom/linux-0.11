@@ -49,12 +49,12 @@ void do_rd_request(void)
 /*
  * Returns amount of memory which needs to be reserved.
  */
-long rd_init(long mem_start, int length)
+long rd_init(long mem_start, int length)	// tsz: #think #ques 为什么虚拟盘没有终端?
 {
 	int	i;
 	char	*cp;
 
-	blk_dev[MAJOR_NR].request_fn = DEVICE_REQUEST;	// tsz: #book 挂载了函数，函数定义了读写操作；blk_dev在ll_rw_blk.c中，有7项，但第一项为空
+	blk_dev[MAJOR_NR].request_fn = DEVICE_REQUEST;	// tsz: #book 挂载了函数，函数定义了读写操作；blk_dev数组在ll_rw_blk.c中，有7项，但第一项为空，blk_dev_struct的定义也在blk.h中，有两项，第一项为request_fn，第二项为具体的request的指针
 	rd_start = (char *) mem_start;
 	rd_length = length;
 	cp = rd_start;

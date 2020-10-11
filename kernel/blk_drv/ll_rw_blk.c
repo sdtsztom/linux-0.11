@@ -161,7 +161,7 @@ void blk_dev_init(void)
 	int i;
 
 	for (i=0 ; i<NR_REQUEST ; i++) {
-		request[i].dev = -1;
-		request[i].next = NULL;
+		request[i].dev = -1;	// tsz: #book #personal 没有对应设备 request结构的定义在blk.h中
+		request[i].next = NULL;	// tsz: #book 没有形成请求项
 	}
 }

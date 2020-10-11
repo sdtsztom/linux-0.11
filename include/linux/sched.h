@@ -50,7 +50,7 @@ struct i387_struct {
 	long	st_space[20];	/* 8*10 bytes for each FP-reg = 80 bytes */
 };
 
-struct tss_struct {
+struct tss_struct {	// tsz: #personal #note #impo 基本上就是一堆寄存器的值
 	long	back_link;	/* 16 high bits zero */
 	long	esp0;	//tsz: #course 好像对应4个特权的栈
 	long	ss0;		/* 16 high bits zero */
@@ -77,7 +77,7 @@ struct tss_struct {
 	struct i387_struct i387;
 };
 
-struct task_struct {
+struct task_struct {	// tsz: #personal #note #impo
 /* these are hardcoded - don't touch */
 	long state;	/* -1 unrunnable, 0 runnable, >0 stopped */
 	long counter;
@@ -124,7 +124,7 @@ struct task_struct {
 /* filp */	{NULL,}, \
 	{ \
 		{0,0}, \
-/* ldt */	{0x9f,0xc0fa00}, \	//tsz: #course #think 算算这个地址在哪?
+/* ldt */	{0x9f,0xc0fa00}, \	//tsz: #course #think 算算这个地址在哪? #answ 可能问题是算段限长： 段限长应该是160*4K=640K
 		{0x9f,0xc0f200}, \
 	}, \
 /*tss*/	{0,PAGE_SIZE+(long)&init_task,0x10,0,0,0,0,(long)&pg_dir,\

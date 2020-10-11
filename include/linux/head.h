@@ -2,7 +2,7 @@
 #define _HEAD_H
 
 typedef struct desc_struct {
-	unsigned long a,b;
+	unsigned long a,b;	// tsz: #personal 用a、b来代表前后各4B
 } desc_table[256];
 
 extern unsigned long pg_dir[1024];

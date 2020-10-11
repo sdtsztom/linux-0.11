@@ -10,7 +10,8 @@ Linus曾经说过：RTFSC - Read The Fucking Source Code.
 目前更新到kernel部分的注释，驱动部分应该不会更新，目前感兴趣的部分在kernle、内存管理、网络(这个版本还没有网络....). 就酱 ! ! !
 
 # New fork Repo README
-tag为`book`的注释参考《Linux内核设计的艺术》(book)和赵炯的《Linux内核完全注释》(book2)
+- tag为`book`的注释参考《Linux内核设计的艺术》(book)和赵炯的《Linux内核完全注释》(book2)
+- 注意下方的tag不一定全在以`// tsz:`开头的注释中，可能也出现在原先库自带的注释中，比如`#note`
 ## tags汇总
 - course
 - book
@@ -22,3 +23,5 @@ tag为`book`的注释参考《Linux内核设计的艺术》(book)和赵炯的《
 - impo(important)
 - ques(question)
 - think
+- TODO
+- answ(answer)

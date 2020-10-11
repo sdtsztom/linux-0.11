@@ -50,7 +50,7 @@ void page_exception(void);          // 页异常
 
 // 以下定义了一些中断处理程序原型，用于在函数trap_init()中设置相应中断门描述符。
 // 这些代码在asm.s或system_call.s中。
-void divide_error(void);
+void fdivide_error(void);	// tsz: #personal #note 这些函数的实现在asm.s中
 void debug(void);
 void nmi(void);
 void int3(void);
@@ -209,7 +209,7 @@ void trap_init(void)
 	set_trap_gate(0,&divide_error);	// tsz: #book 除0
 	set_trap_gate(1,&debug);	// tsz: #book 单步调试
 	set_trap_gate(2,&nmi);	// tsz: #book 不可屏蔽中断
-	set_system_gate(3,&int3);	/* int3-5 can be called from all */
+	set_system_gate(3,&int3);	/* int3-5 can be called from all */	// tsz: #personal #note 注意这里的中断设置函数是system_gate!
 	set_system_gate(4,&overflow);
 	set_system_gate(5,&bounds);	// tsz: #book 边界检查错误
 	set_trap_gate(6,&invalid_op);	// tsz: #book 无效指令
@@ -228,7 +228,7 @@ void trap_init(void)
 		set_trap_gate(i,&reserved);
     // 设置协处理器中断0x2d(45)陷阱门描述符，并允许其产生中断请求。设置并行口中断描述符。
 	set_trap_gate(45,&irq13);
-	outb_p(inb_p(0x21)&0xfb,0x21);  // 允许8259A主芯片的IRQ2中断请求。
+	outb_p(inb_p(0x21)&0xfb,0x21);  // 允许8259A主芯片的IRQ2中断请求。	// tsz: #personal #note outb与下面的outb_p对应相应的汇编指令，在io.h中，是用来往IO端口写byte数据的，通过这种方式来设置8259A芯片
 	outb(inb_p(0xA1)&0xdf,0xA1);    // 允许8259A从芯片的IRQ3中断请求。
 	set_trap_gate(39,&parallel_interrupt); // 设置并行口1的中断0x27陷阱门的描述符。
 }

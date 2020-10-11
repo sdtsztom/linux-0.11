@@ -48,7 +48,7 @@
 #define O_NLRET(tty)	_O_FLAG((tty),ONLRET)
 #define O_LCUC(tty)	_O_FLAG((tty),OLCUC)
 
-struct tty_struct tty_table[] = {
+struct tty_struct tty_table[] = {	// tsz: #personal 共有3项
 	{
 		{ICRNL,		/* change incoming CR to NL */
 		OPOST|ONLCR,	/* change outgoing NL to CRNL */
@@ -107,8 +107,8 @@ struct tty_queue * table_list[]={
 void tty_init(void)
 {
     // 初始化串行中断程序和串行接口1和2（serial.c）
-	rs_init();
-	con_init();     // 初始化控制台终端(console.c文件中)
+	rs_init();	// tsz: #book 设置串行接口，在serial.c中
+	con_init();     // 初始化控制台终端(console.c文件中)	// tsz: #book 设置显示器
 }
 
 void tty_intr(struct tty_struct * tty, int mask)

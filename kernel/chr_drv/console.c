@@ -625,7 +625,7 @@ void con_write(struct tty_struct * tty)
 // 全局变量。然后根据显示卡模式(单色还是彩色显示)和显卡类型(EGA/VGA还是CGA)
 // 分别设置显示内存起始位置以及显示索引寄存器和显示数值寄存器端口号。最后设置
 // 键盘中断陷阱描述符并复位对键盘中断的屏蔽位，以允许键盘开始工作。
-void con_init(void)
+void con_init(void)	// tsz: #personal #TODO 先略过
 {
     // 寄存器变量a为了高效的访问和操作。
     // 若想指定存放的寄存器(如eax),则可以写成：

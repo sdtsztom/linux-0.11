@@ -20,7 +20,7 @@
 
 #define WAKEUP_CHARS (TTY_BUF_SIZE/4)
 
-extern void rs1_interrupt(void);
+extern void rs1_interrupt(void);	// tsz: #personal #note 函数实现在rs_io.s中
 extern void rs2_interrupt(void);
 
 // 初始化串行端口
@@ -51,9 +51,9 @@ void rs_init(void)
 {
     // 下面两句用于设置两个串行口的中断门描述符。rsl_interrupt是串口1的中断处理过程指正。
     // 串口1使用的中断是int 0x24，串口2的是int 0x23.
-	set_intr_gate(0x24,rs1_interrupt);      // 设置串行口1的中断门向量(IRQ4信号)
-	set_intr_gate(0x23,rs2_interrupt);      // 设置串行口2的中断门向量(IRQ3信号)
-	init(tty_table[1].read_q.data);         // 初始化串行口1(.data是端口基地址)
+	set_intr_gate(0x24,rs1_interrupt);      // 设置串行口1的中断门向量(IRQ4信号)	// tsz: #book 对应IRQ3中断
+	set_intr_gate(0x23,rs2_interrupt);      // 设置串行口2的中断门向量(IRQ3信号)	// tsz: #book 对应IRQ4中断
+	init(tty_table[1].read_q.data);         // 初始化串行口1(.data是端口基地址)	// tsz: #personal tty_table的数据赋值在tty_io.c中，结构体的声明在tty.h中；read_q是tty设备的read queue
 	init(tty_table[2].read_q.data);         // 初始化串行口2
 	outb(inb_p(0x21)&0xE7,0x21);            // 允许主8259A响应IRQ3、IRQ4中断请求
 }

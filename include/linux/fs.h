@@ -65,7 +65,7 @@ __asm__("incl %0\n\tandl $4095,%0"::"m" (head))
 
 typedef char buffer_block[BLOCK_SIZE];
 
-struct buffer_head {
+struct buffer_head {	// tsz: #personal 34B
 	char * b_data;			/* pointer to data block (1024 bytes) */
 	unsigned long b_blocknr;	/* block number */
 	unsigned short b_dev;		/* device (0 = free) */

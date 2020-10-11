@@ -116,24 +116,24 @@ static void time_init(void)
 {
 	struct tm time;
 
-    // CMOS的访问速度很慢，为了减少时间误差，在读取了下面循环中的所有数值后，如果此时
+    // #note CMOS的访问速度很慢，为了减少时间误差，在读取了下面循环中的所有数值后，如果此时
     // CMOS中秒值发生了变化，那么就重新读取所有值。这样内核就能把与CMOS时间误差控制在1秒之内。
 	do {
-		time.tm_sec = CMOS_READ(0);
+		time.tm_sec = CMOS_READ(0);	// tsz: #personal 参数是addr
 		time.tm_min = CMOS_READ(2);
 		time.tm_hour = CMOS_READ(4);
 		time.tm_mday = CMOS_READ(7);
 		time.tm_mon = CMOS_READ(8);
 		time.tm_year = CMOS_READ(9);
-	} while (time.tm_sec != CMOS_READ(0));
-	BCD_TO_BIN(time.tm_sec);
+	} while (time.tm_sec != CMOS_READ(0));	// tsz: #personal 为了准确进行循环
+	BCD_TO_BIN(time.tm_sec);	// tsz: #book2 BCD编码转化为二进制编码s
 	BCD_TO_BIN(time.tm_min);
 	BCD_TO_BIN(time.tm_hour);
 	BCD_TO_BIN(time.tm_mday);
 	BCD_TO_BIN(time.tm_mon);
 	BCD_TO_BIN(time.tm_year);
 	time.tm_mon--;                              // tm_mon中月份的范围是0-11
-	startup_time = kernel_mktime(&time);        // 计算开机时间。kernel/mktime.c文件
+	startup_time = kernel_mktime(&time);        // 计算开机时间。kernel/mktime.c文件	// tsz: #personal startup_time是全局变量；kernel_mktime在mktime.c中
 }
 
 // 下面定义一些局部变量
@@ -175,16 +175,16 @@ void main(void)		/* This really IS void, no error here. */
     // 看不下去了，就先放一放，继续看下一个初始化调用。——这是经验之谈。o(∩_∩)o 。;-)
 	mem_init(main_memory_start,memory_end); // 主内存区初始化。mm/memory.c
 	trap_init();                            // 陷阱门(硬件中断向量)初始化，kernel/traps.c	// tsz: #book 设置了48个中断向量，其中有些是预留的
-	blk_dev_init();                         // 块设备初始化,kernel/blk_drv/ll_rw_blk.c
-	chr_dev_init();                         // 字符设备初始化, kernel/chr_drv/tty_io.c
-	tty_init();                             // tty初始化， kernel/chr_drv/tty_io.c
+	blk_dev_init();                         // 块设备初始化,kernel/blk_drv/ll_rw_blk.c	// tsz: #book 主要是初始化请求项管理数据结构request
+	chr_dev_init();                         // 字符设备初始化, kernel/chr_drv/tty_io.c	// tsz: #book 空函数，用下面的tty_init来初始化字符设备
+	tty_init();                             // tty初始化， kernel/chr_drv/tty_io.c	// tsz: #book #personal 初始化字符设备；teletype 打字机的意思
 	time_init();                            // 设置开机启动时间 startup_time
 	sched_init();                           // 调度程序初始化(加载任务0的tr,ldtr)(kernel/sched.c)
     // 缓冲管理初始化，建内存链表等。(fs/buffer.c)
 	buffer_init(buffer_memory_end);
 	hd_init();                              // 硬盘初始化，kernel/blk_drv/hd.c
 	floppy_init();                          // 软驱初始化，kernel/blk_drv/floppy.c 
-	sti();                                  // 所有初始化工作都做完了，开启中断	//tsz: #course 开中断，关中断在setup.s的cli()，两个函数中间都在和中断有关的东西打交道
+	sti();                                  // 所有初始化工作都做完了，开启中断	//tsz: #course #personal 开中断，关中断在setup.s的cli()，两个函数中间都在和中断有关的东西打交道；函数见system.h
     // 下面过程通过在堆栈中设置的参数，利用中断返回指令启动任务0执行。
 	move_to_user_mode();                    // 移到用户模式下执行
 	if (!fork()) {		/* we count on this going ok */

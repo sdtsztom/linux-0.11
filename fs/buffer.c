@@ -26,7 +26,7 @@
 #include <asm/system.h>
 #include <asm/io.h>
 
-// 变量end是由编译时的连接程序ld生成，用于表明内核代码的末端，即指明内核模块某段位置。
+// # note 变量end是由编译时的连接程序ld生成，用于表明内核代码的末端，即指明内核模块某段位置。
 // 也可以从编译内核时生成的System.map文件中查出。这里用它来表明高速缓冲区开始于内核
 // 代码某段位置。
 // buffer_wait等变量是等待空闲缓冲块而睡眠的任务队列头指针。它与缓冲块头部结构中b_wait
@@ -498,15 +498,15 @@ struct buffer_head * breada(int dev,int first, ...)
 // 缓冲区中所有内存被分配完毕。
 void buffer_init(long buffer_end)
 {
-	struct buffer_head * h = start_buffer;
-	void * b;
+	struct buffer_head * h = start_buffer;	// tsz: #personal head从内核代码末端开始，buffer_head的结构定义在fs.h中,共34B
+	void * b;	// tsz: #personal 缓冲区高位
 	int i;
 
     // 首先根据参数提供的缓冲区高端位置确定实际缓冲区高端位置b。如果缓冲区高端等于1Mb，
-    // 则因为从640KB - 1MB被显示内存和BIOS占用，所以实际可用缓冲区内存高端位置应该是
+    // #note 则因为从640KB - 1MB被显示内存和BIOS占用，所以实际可用缓冲区内存高端位置应该是
     // 640KB。否则缓冲区内存高端一定大于1MB。
 	if (buffer_end == 1<<20)
-		b = (void *) (640*1024);
+		b = (void *) (640*1024);	// tsz: #personal 刚好是ldt0中数据、代码描述符的段限长,同时也是BIOS区域的开始
 	else
 		b = (void *) buffer_end;
     // 这段代码用于初始化缓冲区，建立空闲缓冲区块循环链表，并获取系统中缓冲块数目。
@@ -515,8 +515,9 @@ void buffer_init(long buffer_end)
     // h是指向缓冲头结构的指针，而h+1是指向内存地址连续的下一个缓冲头地址，也可以说
     // 是指向h缓冲头的末端外。为了保证有足够长度的内存来存储一个缓冲头结构，需要b所
     // 指向的内存块地址 >= h 缓冲头的末端，即要求 >= h+1.
-	//tsz: #course 链表
-	while ( (b -= BLOCK_SIZE) >= ((void *) (h+1)) ) {
+	//tsz: #course 链表;#book 从两头成对创建
+	//tsz: #think 共有多少对：#answ 在1MB内存下，共有(1024-196-384)*1024/(1024+34)=429块；16MB下，同理有(4*1024-196-384)*1024/(1024+34)=3403块
+	while ( (b -= BLOCK_SIZE) >= ((void *) (h+1)) ) {	// tsz: #book 1k/block
 		h->b_dev = 0;                       // 使用该缓冲块的设备号
 		h->b_dirt = 0;                      // 脏标志，即缓冲块修改标志
 		h->b_count = 0;                     // 缓冲块引用计数
@@ -530,7 +531,7 @@ void buffer_init(long buffer_end)
 		h->b_next_free = h+1;               // 指向连表中后一项
 		h++;                                // h指向下一新缓冲头位置
 		NR_BUFFERS++;                       // 缓冲区块数累加
-		if (b == (void *) 0x100000)         // 若b递减到等于1MB，则跳过384KB
+		if (b == (void *) 0x100000)         // 若b递减到等于1MB，则跳过384KB	// tsz: #personal 跳过了bios和显存区段
 			b = (void *) 0xA0000;           // 让b指向地址0xA0000(640KB)处
 	}
 	h--;                                    // 让h指向最后一个有效缓冲块头
@@ -540,5 +541,5 @@ void buffer_init(long buffer_end)
     // 最后初始化hash表，置表中所有指针为NULL。
 	//tsz: #course hash表
 	for (i=0;i<NR_HASH;i++)
-		hash_table[i]=NULL;
+		hash_table[i]=NULL;	// tsz: #book 307项，也是对buffer_head的指针
 }	

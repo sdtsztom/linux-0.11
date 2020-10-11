@@ -189,7 +189,7 @@ end_move:
 # tsz: #book 打开保护模式 
 	mov	ax,#0x0001	! protected mode (PE) bit
 	lmsw	ax		! This is it! # tsz: #book lmsw将数据load到cr0 
-	jmpi	0,8		! jmp offset 0 of segment 8 (cs)	# tsz: #book #note #impo 保护模式下的语法，注意此时放到CS中的数据根据对应gdt来装载
+	jmpi	0,8		! jmp offset 0 of segment 8 (cs)	# tsz: #book #note #impo 保护模式下的语法;#ques CS中的数据到底是8还是对应的的gdt项？我觉得可能是前者
 
 ! This routine checks that the keyboard command queue is empty
 ! No timeout is used - if this hangs there is something wrong with
