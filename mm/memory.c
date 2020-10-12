@@ -92,7 +92,7 @@ static unsigned char mem_map [ PAGING_PAGES ] = {0,};
 // 并没有映射到某个进程的地址空间中去。后面的put_page()函数即用于把指定页面映射
 // 到某个进程地址空间中。当然对于内核使用本函数并不需要再使用put_page()进行映射，
 // 因为内核代码和数据空间（16MB）已经对等地映射到物理地址空间。
-unsigned long get_free_page(void)	// tsz: #course #think 从后往前找还是相反?
+unsigned long get_free_page(void)	// tsz: #course #think 从后往前找还是相反?#answ 从高往低+见缝插针；基址加上mm_map的index得到分配的内存地址；#think 内存清零了吗？拿到的是物理地址还是线性地址？
 {
 register unsigned long __res asm("ax");
 

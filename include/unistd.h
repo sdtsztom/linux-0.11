@@ -134,9 +134,9 @@
 type name(void) \
 { \
 long __res; \
-__asm__ volatile ("int $0x80" \	// tsz: #course #think 系统自动压栈,压在了内核栈还是用户栈?应该是后者
+__asm__ volatile ("int $0x80" \	// tsz: #course #think 系统自动压栈,压在了内核栈还是用户栈?应该是后者；Int80导致了系统调用对应的中断处理函数system_call；#note #impo 使用int 80之后，硬件来完成对应操作
 	: "=a" (__res) \
-	: "0" (__NR_##name)); \	// tsz: #course fork号码为2
+	: "0" (__NR_##name)); \	// tsz: #course __NR_fork号码为2
 if (__res >= 0) \
 	return (type) __res; \
 errno = -__res; \

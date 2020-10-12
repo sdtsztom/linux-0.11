@@ -56,7 +56,7 @@ void show_stat(void)
 extern void mem_use(void);      // 没有任何地方定义和引用该函数
 
 extern int timer_interrupt(void);       // 时钟中断处理程序
-extern int system_call(void);           // 系统调用中断处理程序
+extern int system_call(void);           // 系统调用中断处理程序	// tsz: #personal system_call的定义在system_call.s中
 
 // 每个任务(进程)在内核态运行时都有自己的内核态堆栈。这里定义了任务的内核态堆栈结构。
 // 定义任务联合(任务结构成员和stack字符数组成员)。因为一个任务的数据结构与其内核态堆栈

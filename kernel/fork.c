@@ -62,7 +62,7 @@ void verify_area(void * addr,int size)
 // (copy on write)技术，因此这里仅为新进程设置自己的页目录表项和页表项，而
 // 没有实际为新进程分配物理内存页面。此时新进程与其父进程共享所有内存页面。
 // 操作成功返回0，否则返回出错号。
-int copy_mem(int nr,struct task_struct * p)
+int copy_mem(int nr,struct task_struct * p)	// tsz: #course 内存被等分
 {
 	unsigned long old_data_base,new_data_base,data_limit;
 	unsigned long old_code_base,new_code_base,code_limit;
@@ -85,7 +85,7 @@ int copy_mem(int nr,struct task_struct * p)
     // 的页目录表项和页表项，即复制当前进程(父进程)的页目录表项和页表项。
     // 此时子进程共享父进程的内存页面。正常情况下copy_page_tables()返回0，
     // 否则表示出错，则释放刚申请的页表项。
-	new_data_base = new_code_base = nr * 0x4000000;
+	new_data_base = new_code_base = nr * 0x4000000;	// tsz: #course 64M，这64M式进程的用户态用的Ks
 	p->start_code = new_code_base;
 	set_base(p->ldt[1],new_code_base);
 	set_base(p->ldt[2],new_data_base);
@@ -110,7 +110,7 @@ int copy_mem(int nr,struct task_struct * p)
 // 2. 在刚进入system_call时压入栈的段寄存器ds、es、fs和edx、ecx、ebx；
 // 3. 调用sys_call_table中sys_fork函数时压入栈的返回地址(用参数none表示)；
 // 4. 在调用copy_process()分配任务数组项号。
-int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,	// tsz: #impo 右序进栈，所以看到最右边的参数是int80压的栈，还有一些栈是在system_call中压的栈，最后一部分栈是sys_fork压的栈
+int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,	// tsz: #impo 右序进栈，所以看到最右边的参数是int80压的栈，还有一些栈是在system_call中压的栈，最后一部分栈是sys_fork压的栈；nr是eax，是find_empty_process的返回值
 		long ebx,long ecx,long edx,
 		long fs,long es,long ds,
 		long eip,long cs,long eflags,long esp,long ss)
@@ -123,17 +123,17 @@ int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,	// tsz: #i
     // 然后将新任务结构指针放入任务数组的nr项中。其中nr为任务号，由前面
     // find_empty_process()返回。接着把当前进程任务结构内容复制到刚申请到
     // 的内存页面p开始处。
-	p = (struct task_struct *) get_free_page();	// tsz: #course 能玩页了，pg打开了，cr3和页目录表初始化好了，mem_map，注意不是用union来转换类型，而是用task_struct
+	p = (struct task_struct *) get_free_page();	// tsz: #course 能玩页了，pg打开了，cr3和页目录表初始化好了，mem_map，注意不是用union来转换类型，而是用task_struct;#impo 回去看这个函数，这个函数重要；作用为将父进程的task_struct的内容复制过来（当然只复制了一个task_struct的内容，没有copy stack的内容）
 	if (!p)
 		return -EAGAIN;
-	task[nr] = p;
-	*p = *current;	/* NOTE! this doesn't copy the supervisor stack */
+	task[nr] = p;	// tsz: #personal 已经有了调度的资格
+	*p = *current;	/* NOTE! this doesn't copy the supervisor stack */	// tsz: #course #personal current是指向当前task_struct的指针；在sched.c中初始化为指向进程0的task_struct;不用修改自己的信息，此时其实已经能跑了，也能调度了；#think 复制父进程的struct有多少意义?
     // 随后对复制来的进程结构内容进行一些修改，作为新进程的任务结构。先将
     // 进程的状态置为不可中断等待状态，以防止内核调度其执行。然后设置新进程
     // 的进程号pid和父进程号father，并初始化进程运行时间片值等于其priority值
     // 接着复位新进程的信号位图、报警定时值、会话(session)领导标志leader、进程
     // 及其子进程在内核和用户态运行时间统计值，还设置进程开始运行的系统时间start_time.
-	p->state = TASK_UNINTERRUPTIBLE;
+	p->state = TASK_UNINTERRUPTIBLE;	// tsz: #course 设置其现在不能被调度（非抢占式不加也行，timer看到在内核态会缩回去，抢占式必须得加）
 	p->pid = last_pid;              // 新进程号。也由find_empty_process()得到。
 	p->father = current->pid;       // 设置父进程
 	p->counter = p->priority;       // 运行时间片值
@@ -151,9 +151,9 @@ int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,	// tsz: #i
 	p->tss.back_link = 0;
 	p->tss.esp0 = PAGE_SIZE + (long) p;     // 任务内核态栈指针。
 	p->tss.ss0 = 0x10;                      // 内核态栈的段选择符(与内核数据段相同)
-	p->tss.eip = eip;                       // 指令代码指针
-	p->tss.eflags = eflags;                 // 标志寄存器
-	p->tss.eax = 0;                         // 这是当fork()返回时新进程会返回0的原因所在
+	p->tss.eip = eip;                       // 指令代码指针	// tsz: #course 3特权，int80后面那句的地址；#personal #impo 这些压栈的内容进行手动复制的原因在于，进程0没有发生调度，可能这些即时的状态没有被保存在tss中
+	p->tss.eflags = eflags;                 // 标志寄存器	// tsz: #course #impo eflags在内存，dangerous，将eflags的iopl修改成3就能为所欲为（滑稽）
+	p->tss.eax = 0;                         // 这是当fork()返回时新进程会返回0的原因所在	// tsz: #course 写死了，因为后头有个扣
 	p->tss.ecx = ecx;
 	p->tss.edx = edx;
 	p->tss.ebx = ebx;
@@ -181,7 +181,7 @@ int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,	// tsz: #i
     // 接下来复制进程页表。即在线性地址空间中设置新任务代码段和数据段描述符中的基址和限长，
     // 并复制页表。如果出错(返回值不是0)，则复位任务数组中相应项并释放为该新任务分配的用于
     // 任务结构的内存页。
-	if (copy_mem(nr,p)) {
+	if (copy_mem(nr,p)) {	// tsz: #couse #
 		task[nr] = NULL;
 		free_page((long) p);
 		return -EAGAIN;

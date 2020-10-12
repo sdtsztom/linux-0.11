@@ -90,7 +90,7 @@ reschedule:
 ### int 0x80 - linux系统调用入口点(调用中断int 0x80,eax 中是调用号)
 .align 2
 system_call:	# tsz: #course 系统调用的汇编代码
-	cmpl $nr_system_calls-1,%eax    # 调用号如果超出范围的话就在eax中置-1并退出 # tsz: #course nr_system_calls是系统总共的调用数 
+	cmpl $nr_system_calls-1,%eax    # 调用号如果超出范围的话就在eax中置-1并退出 # tsz: #course nr_system_calls是系统总共的调用数，这里在判断调用号是否合法
 	ja bad_sys_call
 	push %ds                        # 保存原段寄存器值
 	push %es
@@ -276,7 +276,7 @@ sys_fork:
 	pushl %esi
 	pushl %edi
 	pushl %ebp
-	pushl %eax	# tsz: #course #knowl find_empty_process的返回，gccc中int一般用eax返回 
+	pushl %eax	# tsz: #course #knowl find_empty_process的返回，gcc中的规则为：int一般用eax返回，这个eax成了copy_process的nr参数，最后成了使用的task的index
 	call copy_process
 	addl $20,%esp               # 丢弃这里所有压栈内容。
 1:	ret
