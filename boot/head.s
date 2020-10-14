@@ -17,15 +17,15 @@ pg_dir:	# tsz: #book 标志内核分页机制完成后的内核起始位置
 .globl startup_32
 startup_32:
 	movl $0x10,%eax	# tsz: #book 刚进入保护模式，第一次设置这些寄存器，这4个寄存器都指向内核数据段，0x10是gdt的第三项，即内核数据段
-	mov %ax,%ds	# tsz: #course #ques 对齐 什么意思?是不是记错了
+	mov %ax,%ds	# tsz: #course (#doubut对齐)
 	mov %ax,%es
 	mov %ax,%fs
 	mov %ax,%gs
-	lss stack_start,%esp	# tsz: #book #course stack_start(是两个数据的组合)                                                                                        定义在sched.c中，内核的栈，将来会变成用户栈(在system.h的move_to_user_mode中将特权变成了3特权)
+	lss stack_start,%esp	# tsz: #book #course stack_start(是两个数据的组合)，此时栈顶在user_stack的底端；定义在sched.c中，内核的栈，将来会变成用户栈(在system.h的move_to_user_mode中将特权变成了3特权)
 		# tsz: #book #personal 还有对应的LDS、LES、LGS、LFS；lss应该其实也可以用上面的方法赋值，不过这里要要赋值ss和sp，一句顶两句
 	call setup_idt
 	call setup_gdt
-	movl $0x10,%eax		# reload all the segment registers	# tsz: #book #personal #note 因为段限长的改变，需要重新load；说明段寄存器中保存有关于限长的数据?
+	movl $0x10,%eax		# reload all the segment registers	# tsz: #book #personal #note 因为段限长的改变（在gdt项中），需要重新load，将对应的改变了的gtd项的值load进来
 	mov %ax,%ds		# after changing gdt. CS was already
 	mov %ax,%es		# reloaded in 'setup_gdt'
 	mov %ax,%fs
@@ -204,14 +204,14 @@ setup_paging:
 	movl $1024*5,%ecx		/* 5 pages - pg_dir+4 page tables */
 	xorl %eax,%eax
 	xorl %edi,%edi			/* pg_dir is at 0x000 */
-	cld;rep;stosl	# tsz: #personal cld设置edi为自增方向；stosl使得eax中的内容保存到es:di的位置，并使edi每次自增4B,重复1024*5次，也就是以上一段完成了内存清零
+	cld;rep;stosl	# tsz: #personal cld为clear df flag,设置edi为自增方向；stosl使得eax中的内容保存到es:di的位置，并使edi每次自增4B,重复1024*5次，也就是以上一段完成了内存清零;注意格式，循环的代码在下方	#ques 这里怎么确定循环的范围?
 	movl $pg0+7,pg_dir		/* set present bit/user r/w */	# tsz: #course #ques 在页目录表中刷各个页表的属性设置，那三位是u/s;r/w,present，111表示用户u,rw,p;000代表内核s,r,不存在;明明是内核的页表，为什么设置成用户u?
 	movl $pg1+7,pg_dir+4		/*  --------- " " --------- */
 	movl $pg2+7,pg_dir+8		/*  --------- " " --------- */
 	movl $pg3+7,pg_dir+12		/*  --------- " " --------- */
 	movl $pg3+4092,%edi	# tsz: #personal 移到最后一个页表项 
 	movl $0xfff007,%eax		/*  16Mb - 4096 + 7 (r/w user,p) */	# tsz: #personal 最后一个页表项的值(指向的地址和属性)
-	std	# tsz: #personal 设置edi自减方向
+	std	# tsz: #personal std是set df flag，设置edi自减方向
 1:	stosl			/* fill pages backwards - more efficient :-) */
 	subl $0x1000,%eax	# tsz: #personal 指向的地址-4k 
 	jge 1b	# tsz: #book2 小于0说明全部填好了 

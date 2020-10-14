@@ -250,7 +250,7 @@ static inline unsigned long _get_base(char * addr)
 
 #define get_limit(segment) ({ \
 unsigned long __limit; \
-__asm__("lsll %1,%0\n\tincl %0":"=r" (__limit):"r" (segment)); \
+__asm__("lsll %1,%0\n\tincl %0":"=r" (__limit):"r" (segment)); \	// tsz: #course load segment limit
 __limit;})
 
 #endif

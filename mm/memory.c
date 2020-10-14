@@ -57,7 +57,7 @@ __asm__("movl %%eax,%%cr3"::"a" (0))
 // 分页后的物理内存页面数（3840）
 #define PAGING_PAGES (PAGING_MEMORY>>12)
 // 指定地址映射为页号
-#define MAP_NR(addr) (((addr)-LOW_MEM)>>12)
+#define MAP_NR(addr) (((addr)-LOW_MEM)>>12)	
 // 页面被占用标志.
 #define USED 100
 
@@ -76,7 +76,7 @@ __asm__("cld ; rep ; movsl"::"S" (from),"D" (to),"c" (1024))
 // 物理内存映射字节图（1字节代表1页内存）。每个页面对应的字节用于标志页面当前引
 // 用（占用）次数。它最大可以映射15MB的内存空间。在初始化函数mem_init()中，对于
 // 不能用做主内存页面的位置均都预先被设置成USED（100）.
-static unsigned char mem_map [ PAGING_PAGES ] = {0,};
+static unsigned char mem_map [ PAGING_PAGES ] = {0,};	
 
 /*
  * Get physical address of first (actually last :-) free page, and mark it
@@ -89,27 +89,27 @@ static unsigned char mem_map [ PAGING_PAGES ] = {0,};
 // 上面%4寄存器实际指向mem_map[]内存字节位图的最后一个字节。本函数从位图末端开
 // 始向前扫描所有页面标志（页面总数PAGING_PAGE），若有页面空闲（内存位图字节为
 // 0）则返回页面地址。注意！本函数只是指出在主内存区的一页空闲物理内存页面，但
-// 并没有映射到某个进程的地址空间中去。后面的put_page()函数即用于把指定页面映射
+// #note 并没有映射到某个进程的地址空间中去。后面的put_page()函数即用于把指定页面映射
 // 到某个进程地址空间中。当然对于内核使用本函数并不需要再使用put_page()进行映射，
 // 因为内核代码和数据空间（16MB）已经对等地映射到物理地址空间。
 unsigned long get_free_page(void)	// tsz: #course #think 从后往前找还是相反?#answ 从高往低+见缝插针；基址加上mm_map的index得到分配的内存地址；#think 内存清零了吗？拿到的是物理地址还是线性地址？
 {
-register unsigned long __res asm("ax");
+register unsigned long __res asm("ax");	// tsz: #ques asm是什么意思?
 
-__asm__("std ; repne ; scasb\n\t"   // 置方向位，al(0)与对应每个页面的(di)内容比较
+__asm__("std ; repne ; scasb\n\t"   // 置方向位，al(0)与对应每个页面的(di)内容比较	// tsz: #personal std，自减着来搜索;#ques 这种语法在哪停止
 	"jne 1f\n\t"                    // 如果没有等于0的字节，则跳转结束(返回0).
-	"movb $1,1(%%edi)\n\t"          // 1 => [1+edi],将对应页面内存映像bit位置1.
-	"sall $12,%%ecx\n\t"            // 页面数*4k = 相对页面其实地址
-	"addl %2,%%ecx\n\t"             // 再加上低端内存地址，得页面实际物理起始地址
+	"movb $1,1(%%edi)\n\t"          // 1 => [1+edi],将对应页面内存映像bit位置1.	// tsz: #personal #ques 为什么置1?为什么不搜索mem_map?
+	"sall $12,%%ecx\n\t"            // 页面数*4k = 相对页面真实地址	// tsz: #personal 相当于sal，算数左移
+	"addl %2,%%ecx\n\t"             // 再加上低端内存地址，得页面实际物理起始地址	// tsz: #personal %0是返回，从1开始才是输入；这两行得到了每次循环中对应页的起始物理地址，并在下一行将其存入edx，当页面符合资格时，将其返回
 	"movl %%ecx,%%edx\n\t"          // 将页面实际其实地址->edx寄存器。
-	"movl $1024,%%ecx\n\t"          // 寄存器ecx置计数值1024
-	"leal 4092(%%edx),%%edi\n\t"    // 将4092+edx的位置->dei（该页面的末端地址）
+	"movl $1024,%%ecx\n\t"          // 寄存器ecx置计数值1024	// tsz: #personal 用ax（4B的0）搜索1024次，即查看这4K的内存是否都是0
+	"leal 4092(%%edx),%%edi\n\t"    // 将4092+edx的位置->edi（该页面的末端地址）	// tsz: #personal leal是加载有效地址；跳到4092位置，因为是自减着搜索，这是搜索的起点
 	"rep ; stosl\n\t"               // 将edi所指内存清零(反方向，即将该页面清零)
 	"movl %%edx,%%eax\n"            // 将页面起始地址->eax（返回值）
-	"1:"
+	"1:"	// tsz: #personal 这个1就标志了循环内容结束的范围
 	:"=a" (__res)
-	:"0" (0),"i" (LOW_MEM),"c" (PAGING_PAGES),
-	"D" (mem_map+PAGING_PAGES-1)
+	:"0" (0),"i" (LOW_MEM),"c" (PAGING_PAGES),	// tsz: #personal LOW_MEM是1MB，PAGING_PAGES从1MB开始，最多能被用来分页的页数;i是立即数，c是ecx，下面的D是edi
+	"D" (mem_map+PAGING_PAGES-1)	// tsz: #personal mem_map的最后一项地址
 	);
 return __res;           // 返回空闲物理页面地址(若无空闲页面则返回0).
 }
@@ -228,7 +228,7 @@ int copy_page_tables(unsigned long from,unsigned long to,long size)
 	unsigned long * from_dir, * to_dir;
 	unsigned long nr;
 
-    // 首先检测参数给出的原地址from和目的地址to的有效性。原地址和目的地址都需要
+    // #note 首先检测参数给出的原地址from和目的地址to的有效性。原地址和目的地址都需要
     // 在4Mb内存边界地址上。否则出错死机。作这样的要求是因为一个页表的1024项可
     // 管理4Mb内存。源地址from和目的地址to只有满足这个要求才能保证从一个页表的
     // 第一项开始复制页表项，并且新页表的最初所有项都是有效的。然后取得源地址和
@@ -705,7 +705,7 @@ void mem_init(long start_mem, long end_mem)
     // 然后计算主内存区起始内存start_mem处页面对应内存映射字节数组中项号i和主内存区页面数。
     // 此时mem_map[]数组的第i项正对应主内存区中第1个页面。最后将主内存区中页面对应的数组项
     // 清零(表示空闲)。对于具有16MB物理内存的系统，mem_map[]中对应4MB-16MB主内存区的项被清零。
-	i = MAP_NR(start_mem);      // 主内存区其实位置处页面号	// tsz: #personal MAP_NR将地址映射为页号
+	i = MAP_NR(start_mem);      // 主内存区其实位置处页面号	// tsz: #personal MAP_NR将地址映射为页号；这个start_mem是虚拟磁盘的末尾
 	end_mem -= start_mem;
 	end_mem >>= 12;             // 主内存区中的总页面数
 	while (end_mem-->0)

@@ -272,7 +272,7 @@ sys_fork:
 	call find_empty_process	# tsz: #course 这里call的压栈不体现在copy_process的参数中，因为它ret返回并清栈了 
 	testl %eax,%eax             # 在eax中返回进程号pid。若返回负数则退出。
 	js 1f
-	push %gs	# tsz: #course 为copy_process继续压栈 
+	push %gs	# tsz: #course 为copy_process继续压栈
 	pushl %esi
 	pushl %edi
 	pushl %ebp

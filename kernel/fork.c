@@ -72,7 +72,7 @@ int copy_mem(int nr,struct task_struct * p)	// tsz: #course 内存被等分
     // 当前进程代码段和数据段在线性地址空间中的基地址。由于Linux-0.11内核
     // 还不支持代码和数据段分立的情况，因此这里需要检查代码段和数据段基址
     // 和限长是否都分别相同。否则内核显示出错信息，并停止运行。
-	code_limit=get_limit(0x0f);
+	code_limit=get_limit(0x0f);	// tsz: #course 在sched.h中；根据ldtr，使用的是进程0的ldt内容
 	data_limit=get_limit(0x17);
 	old_code_base = get_base(current->ldt[1]);
 	old_data_base = get_base(current->ldt[2]);
@@ -85,7 +85,7 @@ int copy_mem(int nr,struct task_struct * p)	// tsz: #course 内存被等分
     // 的页目录表项和页表项，即复制当前进程(父进程)的页目录表项和页表项。
     // 此时子进程共享父进程的内存页面。正常情况下copy_page_tables()返回0，
     // 否则表示出错，则释放刚申请的页表项。
-	new_data_base = new_code_base = nr * 0x4000000;	// tsz: #course 64M，这64M式进程的用户态用的Ks
+	new_data_base = new_code_base = nr * 0x4000000;	// tsz: #course 64M，这64M是进程的用户态用的；每个进程都分配64M，那么一共就会占用4GB(#personal 当然由于进程0不用这64MB，因此内存不会不够用)
 	p->start_code = new_code_base;
 	set_base(p->ldt[1],new_code_base);
 	set_base(p->ldt[2],new_data_base);
@@ -127,7 +127,7 @@ int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,	// tsz: #i
 	if (!p)
 		return -EAGAIN;
 	task[nr] = p;	// tsz: #personal 已经有了调度的资格
-	*p = *current;	/* NOTE! this doesn't copy the supervisor stack */	// tsz: #course #personal current是指向当前task_struct的指针；在sched.c中初始化为指向进程0的task_struct;不用修改自己的信息，此时其实已经能跑了，也能调度了；#think 复制父进程的struct有多少意义?
+	*p = *current;	/* NOTE! #note this doesn't copy the supervisor stack */	// tsz: #course #personal current是指向当前task_struct的指针；在sched.c中初始化为指向进程0的task_struct;不用修改自己的信息，此时其实已经能跑了，也能调度了；#think 复制父进程的struct有多少意义?
     // 随后对复制来的进程结构内容进行一些修改，作为新进程的任务结构。先将
     // 进程的状态置为不可中断等待状态，以防止内核调度其执行。然后设置新进程
     // 的进程号pid和父进程号father，并初始化进程运行时间片值等于其priority值
@@ -153,7 +153,7 @@ int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,	// tsz: #i
 	p->tss.ss0 = 0x10;                      // 内核态栈的段选择符(与内核数据段相同)
 	p->tss.eip = eip;                       // 指令代码指针	// tsz: #course 3特权，int80后面那句的地址；#personal #impo 这些压栈的内容进行手动复制的原因在于，进程0没有发生调度，可能这些即时的状态没有被保存在tss中
 	p->tss.eflags = eflags;                 // 标志寄存器	// tsz: #course #impo eflags在内存，dangerous，将eflags的iopl修改成3就能为所欲为（滑稽）
-	p->tss.eax = 0;                         // 这是当fork()返回时新进程会返回0的原因所在	// tsz: #course 写死了，因为后头有个扣
+	p->tss.eax = 0;                         // #note 这是当fork()返回时新进程会返回0的原因所在	// tsz: #course 写死了，因为后头有个扣
 	p->tss.ecx = ecx;
 	p->tss.edx = edx;
 	p->tss.ebx = ebx;
