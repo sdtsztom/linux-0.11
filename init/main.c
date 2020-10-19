@@ -187,7 +187,7 @@ void main(void)		/* This really IS void, no error here. */
 	sti();                                  // 所有初始化工作都做完了，开启中断	//tsz: #course #personal 开中断，关中断在setup.s的cli()，两个函数中间都在和中断有关的东西打交道；函数见system.h
     // 下面过程通过在堆栈中设置的参数，利用中断返回指令启动任务0执行。
 	move_to_user_mode();                    // 移到用户模式下执行
-	if (!fork()) {		/* we count on this going ok */	// tsz: #personal 在unistd.h中声明
+	if (!fork()) {		/* we count on this going ok */	// tsz: #personal 在unistd.h中的_syscall0声明
 		init();                             // 在新建的子进程(任务1)中执行。
 	}
 /*
@@ -199,7 +199,7 @@ void main(void)		/* This really IS void, no error here. */
  */
     // pause系统调用会把任务0转换成可中断等待状态，再执行调度函数。但是调度函数只要发现系统中
     // 没有其他任务可以运行是就会切换到任务0，而不依赖于任务0的状态。
-	for(;;) pause();
+	for(;;) pause();	// tsz: #course 又进入了syscall
 }
 
 // 下面函数产生格式化信息并输出到标准输出设备stdout(1),这里是指屏幕上显示。参数'*fmt'

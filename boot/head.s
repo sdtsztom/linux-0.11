@@ -205,7 +205,7 @@ setup_paging:
 	xorl %eax,%eax
 	xorl %edi,%edi			/* pg_dir is at 0x000 */
 	cld;rep;stosl	# tsz: #personal cld为clear df flag,设置edi为自增方向；stosl使得eax中的内容保存到es:di的位置，并使edi每次自增4B,重复1024*5次，也就是以上一段完成了内存清零;注意格式，循环的代码在下方	#ques 这里怎么确定循环的范围?
-	movl $pg0+7,pg_dir		/* set present bit/user r/w */	# tsz: #course #ques 在页目录表中刷各个页表的属性设置，那三位是u/s;r/w,present，111表示用户u,rw,p;000代表内核s,r,不存在;明明是内核的页表，为什么设置成用户u?
+	movl $pg0+7,pg_dir		/* set present bit/user r/w */	# tsz: #course 在页目录表中刷各个页表的属性设置，那三位是u/s;r/w,present，111表示用户u,rw,p;000代表内核s,r,不存在;#ques 明明是内核的页表，为什么设置成用户u?
 	movl $pg1+7,pg_dir+4		/*  --------- " " --------- */
 	movl $pg2+7,pg_dir+8		/*  --------- " " --------- */
 	movl $pg3+7,pg_dir+12		/*  --------- " " --------- */

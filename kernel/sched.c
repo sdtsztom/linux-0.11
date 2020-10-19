@@ -164,7 +164,7 @@ void schedule(void)
 		c = -1;
 		next = 0;
 		i = NR_TASKS;
-		p = &task[NR_TASKS];
+		p = &task[NR_TASKS];	// tsz: #course 从最后一个开始
         // 这段代码也是从任务数组的最后一个任务开始循环处理，并跳过不含任务的数组槽。比较
         // 每个就绪状态任务的counter(任务运行时间的递减滴答计数)值，哪一个值大，运行时间还
         // 不长，next就值向哪个的任务号。

@@ -112,7 +112,7 @@ system_call:	# tsz: #course 系统调用的汇编代码
 # 下面这句操作数的含义是：调用地址=[_sys_call_table + %eax * 4]
 # sys_call_table[]是一个指针数组，定义在include/linux/sys.h中，该指针数组中设置了所有72
 # 个系统调用C处理函数地址。
-	call sys_call_table(,%eax,4)        # 间接调用指定功能C函数	# tsz: #course #impo #knowl 这里的**call也会压栈**，这个压栈也成为了后面函数传递的参数，比如这个就对应copy_process的none参数
+	call sys_call_table(,%eax,4)        # 间接调用指定功能C函数	# tsz: #course #impo #knowl 这里的**call也会压栈**，这个压栈也成为了后面函数传递的参数，比如这个就对应copy_process的none参数;sys_call_table在sys.h中
 	pushl %eax                          # 把系统调用返回值入栈
 # 下面几行查看当前任务的运行状态。如果不在就绪状态(state != 0)就去执行调度程序。如果该
 # 任务在就绪状态，但其时间片已用完(counter = 0),则也去执行调度程序。例如当后台进程组中的
@@ -129,7 +129,7 @@ ret_from_sys_call:
 # 首先判别当前任务是否是初始任务task0,如果是则不比对其进行信号量方面的处理，直接返回。
 	movl current,%eax		# task[0] cannot have signals
 	cmpl task,%eax
-	je 3f                   # 向前(forward)跳转到标号3处退出中断处理
+	je 3f                   # 向前(forward)跳转到标号3处退出中断处理	// tsz: #course 进程0跳到3f
 # 通过对原调用程序代码选择符的检查来判断调用程序是否是用户任务。如果不是则直接退出中断。
 # 这是因为任务在内核态执行时不可抢占。否则对任务进行信号量的识别处理。这里比较选择符是否
 # 为用户代码段的选择符0x000f(RPL=3,局部表，第一个段(代码段))来判断是否为用户任务。如果不是
@@ -278,7 +278,7 @@ sys_fork:
 	pushl %ebp
 	pushl %eax	# tsz: #course #knowl find_empty_process的返回，gcc中的规则为：int一般用eax返回，这个eax成了copy_process的nr参数，最后成了使用的task的index
 	call copy_process
-	addl $20,%esp               # 丢弃这里所有压栈内容。
+	addl $20,%esp               # 丢弃这里所有压栈内容。	// tsz: #course 栈往高处走，清栈
 1:	ret
 
 ### int46 - (int 0x2e)硬盘中断处理程序，响应硬件中断请求IRQ4。

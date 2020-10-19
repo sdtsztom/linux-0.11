@@ -253,7 +253,7 @@ int copy_page_tables(unsigned long from,unsigned long to,long size)	// tsz: #per
         // 页空闲内存页。如果取空闲页面函数get_free_page()返回0，则说明没有申请
         // 到空闲内存页面，可能是内存不够。于是返回-1值退出。
 		from_page_table = (unsigned long *) (0xfffff000 & *from_dir);	// tsz: #course 去掉最后12bit
-		if (!(to_page_table = (unsigned long *) get_free_page()))	// tsz: #course 注意这个get_free_page是从内核中获得空页
+		if (!(to_page_table = (unsigned long *) get_free_page()))	// tsz: #course 注意这个get_free_page是从内核中获得空页，用这个页去创建进程空间的页表
 			return -1;	/* Out of memory, see freeing */
         // 否则我们设置目的目录项信息，把最后3位置位，即当前目录的目录项 | 7，
         // 表示对应页表映射的内存页面是用户级的，并且可读写、存在(Usr,R/W,Present).
@@ -262,17 +262,17 @@ int copy_page_tables(unsigned long from,unsigned long to,long size)	// tsz: #per
         // 针对当前处理的页目录项对应的页表，设置需要复制的页面项数。如果是在内
         // 核空间，则仅需复制头160页对应的页表项(nr=160),对应于开始640KB物理内存
         // 否则需要复制一个页表中的所有1024个页表项(nr=1024)，可映射4MB物理内存。
-		*to_dir = ((unsigned long) to_page_table) | 7;
-		nr = (from==0)?0xA0:1024;
+		*to_dir = ((unsigned long) to_page_table) | 7;	// tsz: #course  7:存在/可读写/u
+		nr = (from==0)?0xA0:1024;	// tsz: #course A0是160，如果是进程0，复制160项页表项->对应640k的限长；若是其他进程，则是1024项
         // 此时对于当前页表，开始循环复制指定的nr个内存页面表项。先取出源页表的
         // 内容，如果当前源页表没有使用，则不用复制该表项，继续处理下一项。否则
         // 复位表项中R/W标志(位1置0)，即让页表对应的内存页面只读。然后将页表项复制
         // 到目录页表中。
-		for ( ; nr-- > 0 ; from_page_table++,to_page_table++) {
+		for ( ; nr-- > 0 ; from_page_table++,to_page_table++) {	// tsz: #course 1.服务器中有很多线程执行的是相同的代码；2. 依托父进程的代码来创建自己的进程内容
 			this_page = *from_page_table;
-			if (!(1 & this_page))
+			if (!(1 & this_page))	// tsz: #course 检查是否存在
 				continue;
-			this_page &= ~2;
+			this_page &= ~2;	// tsz: #course 给第二位清零，设置只读，因为共享了父进程的空间；当真要写的时候进行写时复制
 			*to_page_table = this_page;
             // 如果该页表所指物理页面的地址在1MB以上，则需要设置内存页面映射数
             // 组mem_map[]，于是计算页面号，并以它为索引在页面映射数组相应项中
@@ -295,7 +295,7 @@ int copy_page_tables(unsigned long from,unsigned long to,long size)	// tsz: #per
 			}
 		}
 	}
-	invalidate();
+	invalidate();	// tsz: #course 刷tlb
 	return 0;
 }
 
