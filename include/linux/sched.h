@@ -87,7 +87,7 @@ struct task_struct {	// tsz: #personal #note #impo
 	long blocked;	/* bitmap of masked signals */
 /* various fields */
 	int exit_code;
-	unsigned long start_code,end_code,end_data,brk,start_stack;
+	unsigned long start_code,end_code,end_data,brk,start_stack;	// tsz: #course #impo 操作系统用来管理空间用的
 	long pid,father,pgrp,session,leader;
 	unsigned short uid,euid,suid;
 	unsigned short gid,egid,sgid;
@@ -103,7 +103,7 @@ struct task_struct {	// tsz: #personal #note #impo
 	unsigned long close_on_exec;
 	struct file * filp[NR_OPEN];
 /* ldt for this task 0 - zero 1 - cs 2 - ds&ss */
-	struct desc_struct ldt[3];
+	struct desc_struct ldt[3];	// tsz: #personal #ques 为什么ldt有3个?
 /* tss for this task */
 	struct tss_struct tss;
 };

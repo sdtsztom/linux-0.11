@@ -86,10 +86,10 @@ int copy_mem(int nr,struct task_struct * p)	// tsz: #course 内存被等分
     // 此时子进程共享父进程的内存页面。正常情况下copy_page_tables()返回0，
     // 否则表示出错，则释放刚申请的页表项。
 	new_data_base = new_code_base = nr * 0x4000000;	// tsz: #course 64M，这64M是进程的用户态用的；每个进程都分配64M，那么一共就会占用4GB(#personal 当然由于进程0不用这64MB，因此内存不会不够用)
-	p->start_code = new_code_base;
-	set_base(p->ldt[1],new_code_base);
+	p->start_code = new_code_base;	// tsz: #personal #note 从这里能找到这个空间的开始地址
+	set_base(p->ldt[1],new_code_base);	// tsz: #course #think 更改基址，#ques 但是没改限长，为什么?
 	set_base(p->ldt[2],new_data_base);
-	if (copy_page_tables(old_data_base,new_data_base,data_limit)) {
+	if (copy_page_tables(old_data_base,new_data_base,data_limit)) {	// tsz: #course 传的是父进程数据段的限长，依然是640K的限长
 		printk("free_page_tables: from copy_mem\n");
 		free_page_tables(new_data_base,data_limit);
 		return -ENOMEM;
@@ -142,14 +142,14 @@ int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,	// tsz: #i
 	p->leader = 0;		/* process leadership doesn't inherit */
 	p->utime = p->stime = 0;        // 用户态时间和和心态运行时间
 	p->cutime = p->cstime = 0;      // 子进程用户态和和心态运行时间
-	p->start_time = jiffies;        // 进程开始运行时间(当前时间滴答数)
+	p->start_time = jiffies;        // 进程开始运行时间(当前时间滴答数)	// tsz: #personal 就是0，定义在sched.c中
     // 再修改任务状态段TSS数据，由于系统给任务结构p分配了1页新内存，所以(PAGE_SIZE+
     // (long)p)让esp0正好指向该页顶端。ss0:esp0用作程序在内核态执行时的栈。另外，
     // 每个任务在GDT表中都有两个段描述符，一个是任务的TSS段描述符，另一个是任务的LDT
     // 表描述符。下面语句就是把GDT中本任务LDT段描述符和选择符保存在本任务的TSS段中。
     // 当CPU执行切换任务时，会自动从TSS中把LDT段描述符的选择符加载到ldtr寄存器中。
 	p->tss.back_link = 0;
-	p->tss.esp0 = PAGE_SIZE + (long) p;     // 任务内核态栈指针。
+	p->tss.esp0 = PAGE_SIZE + (long) p;     // 任务内核态栈指针。	// tsz: #personal p是task_union的开始地址，加个PAGE_SIZE就是栈底；#ques ss0:esp0是否相当于在做esb的作用?
 	p->tss.ss0 = 0x10;                      // 内核态栈的段选择符(与内核数据段相同)
 	p->tss.eip = eip;                       // 指令代码指针	// tsz: #course 3特权，int80后面那句的地址；#personal #impo 这些压栈的内容进行手动复制的原因在于，进程0没有发生调度，可能这些即时的状态没有被保存在tss中
 	p->tss.eflags = eflags;                 // 标志寄存器	// tsz: #course #impo eflags在内存，dangerous，将eflags的iopl修改成3就能为所欲为（滑稽）
@@ -167,8 +167,8 @@ int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,	// tsz: #i
 	p->tss.ds = ds & 0xffff;
 	p->tss.fs = fs & 0xffff;
 	p->tss.gs = gs & 0xffff;
-	p->tss.ldt = _LDT(nr);                  // 任务局部表描述符的选择符(LDT描述符在GDT中)
-	p->tss.trace_bitmap = 0x80000000;       // 高16位有效
+	p->tss.ldt = _LDT(nr);                  // 任务局部表描述符的选择符(LDT描述符在GDT中)	// tsz: #personal #ques
+	p->tss.trace_bitmap = 0x80000000;       // 高16位有效	// tsz: #personal #ques
     // 如果当前任务使用了协处理器，就保存其上下文。汇编指令clts用于清除控制寄存器CRO中
     // 的任务已交换(TS)标志。每当发生任务切换，CPU都会设置该标志。该标志用于管理数学协
     // 处理器：如果该标志置位，那么每个ESC指令都会被捕获(异常7)。如果协处理器存在标志MP
@@ -181,7 +181,7 @@ int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,	// tsz: #i
     // 接下来复制进程页表。即在线性地址空间中设置新任务代码段和数据段描述符中的基址和限长，
     // 并复制页表。如果出错(返回值不是0)，则复位任务数组中相应项并释放为该新任务分配的用于
     // 任务结构的内存页。
-	if (copy_mem(nr,p)) {	// tsz: #couse #
+	if (copy_mem(nr,p)) {
 		task[nr] = NULL;
 		free_page((long) p);
 		return -EAGAIN;

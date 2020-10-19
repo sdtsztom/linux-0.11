@@ -30,6 +30,6 @@ volatile void panic(const char * s)
 	if (current == task[0])
 		printk("In swapper task - not syncing\n\r");
 	else
-		sys_sync();
-	for(;;);
+		sys_sync();	// tsz: #course 和硬盘同步
+	for(;;);	// tsz: #course 在这种情况下，死循环是更好的选择，损失更小
 }

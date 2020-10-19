@@ -220,7 +220,7 @@ int free_page_tables(unsigned long from,unsigned long size)
 // 表，原物理内存区将被共享。此后两个进程（父进程和其子进程）将共享内存区，直到
 // 有一个进程执行谢操作时，内核才会为写操作进程分配新的内存页(写时复制机制)。
 // 参数from、to是线性地址，size是需要复制（共享）的内存长度，单位是byte.
-int copy_page_tables(unsigned long from,unsigned long to,long size)
+int copy_page_tables(unsigned long from,unsigned long to,long size)	// tsz: #personal 对于进程1来说,from是0，to是其对应的64M内存空间的起始地址，size是段限长，也就是640K
 {
 	unsigned long * from_page_table;
 	unsigned long * to_page_table;
@@ -234,9 +234,9 @@ int copy_page_tables(unsigned long from,unsigned long to,long size)
     // 第一项开始复制页表项，并且新页表的最初所有项都是有效的。然后取得源地址和
     // 目的地址的其实目录项指针(from_dir 和 to_dir).再根据参数给出的长度size计
     // 算要复制的内存块占用的页表数(即目录项数)。
-	if ((from&0x3fffff) || (to&0x3fffff))
+	if ((from&0x3fffff) || (to&0x3fffff))	// tsz: #personal 检验是否4mb对齐
 		panic("copy_page_tables called with wrong alignment");
-	from_dir = (unsigned long *) ((from>>20) & 0xffc); /* _pg_dir = 0 */
+	from_dir = (unsigned long *) ((from>>20) & 0xffc); /* _pg_dir = 0 */	// tsz: #course 以MB为单位，和ffc与之后，是4MB的倍数
 	to_dir = (unsigned long *) ((to>>20) & 0xffc);
 	size = ((unsigned) (size+0x3fffff)) >> 22;
     // 在得到了源起始目录项指针from_dir和目的起始目录项指针to_dir以及需要复制的
@@ -244,16 +244,16 @@ int copy_page_tables(unsigned long from,unsigned long to,long size)
     // 且开始页表项复制操作。如果目的目录指定的页表已经存在(P=1)，则出错死机。
     // 如果源目录项无效，即指定的页表不存在(P=1),则继续循环处理下一个页目录项。
 	for( ; size-->0 ; from_dir++,to_dir++) {
-		if (1 & *to_dir)
-			panic("copy_page_tables: already exist");
-		if (!(1 & *from_dir))
+		if (1 & *to_dir)	// tsz: #course 页目录表项32bit只用20bit（因为页是对齐到4k的），后面12是一些属性位，最后三位为P、r/w、us(user/supervisor)，这里suppose对应页表项的p位为0
+			panic("copy_page_tables: already exist");	// tsz: #course 死循环去了
+		if (!(1 & *from_dir))	// tsz: 不存在就跳过
 			continue;
         // 在验证了当前源目录项和目的项正常之后，我们取源目录项中页表地址
         // from_page_table。为了保存目的目录项对应的页表，需要在住内存区中申请1
         // 页空闲内存页。如果取空闲页面函数get_free_page()返回0，则说明没有申请
         // 到空闲内存页面，可能是内存不够。于是返回-1值退出。
-		from_page_table = (unsigned long *) (0xfffff000 & *from_dir);
-		if (!(to_page_table = (unsigned long *) get_free_page()))
+		from_page_table = (unsigned long *) (0xfffff000 & *from_dir);	// tsz: #course 去掉最后12bit
+		if (!(to_page_table = (unsigned long *) get_free_page()))	// tsz: #course 注意这个get_free_page是从内核中获得空页
 			return -1;	/* Out of memory, see freeing */
         // 否则我们设置目的目录项信息，把最后3位置位，即当前目录的目录项 | 7，
         // 表示对应页表映射的内存页面是用户级的，并且可读写、存在(Usr,R/W,Present).
