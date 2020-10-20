@@ -38,7 +38,7 @@
 // 下面_syscall0()是unistd.h中的内嵌宏代码。以嵌入汇编的形式调用Linux的系统调用中断
 // 0x80.该中断是所有系统调用的入口。该条语句实际上是int fork()创建进程系统调用。可展
 // 开看之就会立刻明白。syscall0名称中最后的0表示无参数，1表示1个参数。
-static inline _syscall0(int,fork)	// tsz: #personal 展开成fork函数的定义
+static inline _syscall0(int,fork)	// tsz: #personal 展开成fork函数的定义，宏定义在unistd.h
 // int pause() 系统调用，暂停进程的执行，直到收到一个信号
 static inline _syscall0(int,pause)
 // int setup(void * BIOS)系统调用，仅用于linux初始化(仅在这个程序中被调用)

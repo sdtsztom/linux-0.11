@@ -102,7 +102,7 @@ system_call:	# tsz: #course 系统调用的汇编代码
 	pushl %edx
 	pushl %ecx		# push %ebx,%ecx,%edx as parameters
 	pushl %ebx		# to the system call
-	movl $0x10,%edx		# set up ds,es to kernel space
+	movl $0x10,%edx		# set up ds,es to kernel space	# tsz: #personal #note #immp
 	mov %dx,%ds
 	mov %dx,%es
 # fs指向局部数据段(局部描述符表中数据段描述符)，即指向执行本次系统调用的用户程序的数据段。
@@ -112,7 +112,7 @@ system_call:	# tsz: #course 系统调用的汇编代码
 # 下面这句操作数的含义是：调用地址=[_sys_call_table + %eax * 4]
 # sys_call_table[]是一个指针数组，定义在include/linux/sys.h中，该指针数组中设置了所有72
 # 个系统调用C处理函数地址。
-	call sys_call_table(,%eax,4)        # 间接调用指定功能C函数	# tsz: #course #impo #knowl 这里的**call也会压栈**，这个压栈也成为了后面函数传递的参数，比如这个就对应copy_process的none参数;sys_call_table在sys.h中
+	call sys_call_table(,%eax,4)        # 间接调用指定功能C函数	# tsz: #course #impo #knowl 这里的**call也会压栈**，在段内转移时压入eip，在段间转移时压入cs和eip。压栈内容也成为了后面函数参数，比如对应copy_process的none参数;sys_call_table在sys.h中；4代表sys_call_table中每一项有4B
 	pushl %eax                          # 把系统调用返回值入栈
 # 下面几行查看当前任务的运行状态。如果不在就绪状态(state != 0)就去执行调度程序。如果该
 # 任务在就绪状态，但其时间片已用完(counter = 0),则也去执行调度程序。例如当后台进程组中的
@@ -125,11 +125,11 @@ system_call:	# tsz: #course 系统调用的汇编代码
 	je reschedule
 # 以下这段代码执行从系统调用C函数返回后，对信号进行识别处理。其他中断服务程序退出时也
 # 将跳转到这里进行处理后才退出中断过程，例如后面的处理器出错中断int 16.
-ret_from_sys_call:
+ret_from_sys_call:	# tsz: #personal 这个命名就体现出下面的代码是处理返回用的
 # 首先判别当前任务是否是初始任务task0,如果是则不比对其进行信号量方面的处理，直接返回。
 	movl current,%eax		# task[0] cannot have signals
 	cmpl task,%eax
-	je 3f                   # 向前(forward)跳转到标号3处退出中断处理	// tsz: #course 进程0跳到3f
+	je 3f                   # 向前(forward)跳转到标号3处退出中断处理	# tsz: #course 进程0跳到3f处执行
 # 通过对原调用程序代码选择符的检查来判断调用程序是否是用户任务。如果不是则直接退出中断。
 # 这是因为任务在内核态执行时不可抢占。否则对任务进行信号量的识别处理。这里比较选择符是否
 # 为用户代码段的选择符0x000f(RPL=3,局部表，第一个段(代码段))来判断是否为用户任务。如果不是
@@ -269,7 +269,7 @@ sys_execve:
 # 已满。然后调用copy_process()复制进程。
 .align 2
 sys_fork:
-	call find_empty_process	# tsz: #course 这里call的压栈不体现在copy_process的参数中，因为它ret返回并清栈了 
+	call find_empty_process	# tsz: #course 这里call的压栈不体现在copy_process的参数中，因为它ret返回并清栈了;#note  返回结果是新进程的index，被放入eax，这个eax最后被返回给父进程(子进程修改了tss.eax，所以返回0);#personal 函数在fork.c中
 	testl %eax,%eax             # 在eax中返回进程号pid。若返回负数则退出。
 	js 1f
 	push %gs	# tsz: #course 为copy_process继续压栈
@@ -278,7 +278,7 @@ sys_fork:
 	pushl %ebp
 	pushl %eax	# tsz: #course #knowl find_empty_process的返回，gcc中的规则为：int一般用eax返回，这个eax成了copy_process的nr参数，最后成了使用的task的index
 	call copy_process
-	addl $20,%esp               # 丢弃这里所有压栈内容。	// tsz: #course 栈往高处走，清栈
+	addl $20,%esp               # 丢弃这里所有压栈内容。	# tsz: #course 栈往高处走，清栈
 1:	ret
 
 ### int46 - (int 0x2e)硬盘中断处理程序，响应硬件中断请求IRQ4。

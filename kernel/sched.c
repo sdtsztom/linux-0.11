@@ -559,6 +559,7 @@ void sched_init(void)	//tsz: #course scheduling init，即进程调度的初始�
     // 中；gdt是一个描述符表数组(include/linux/head.h)，实际上对应程序head.s中
     // 全局描述符表基址（_gdt）.因此gtd+FIRST_TSS_ENTRY即为gdt[FIRST_TSS_ENTRY](即为gdt[4]),
     // 也即gdt数组第4项的地址。
+	// tsz: #personal #note 这两个设置的函数定义在system.h中；注意两点：1)set_tss/ldt_desc最后公用一个函数，只不过传入的type不一样(对同一个进程而言，ldt和tss的内容区别是由type带来) 2)所有进程都是用这两个函数设置(不同进程的ldt0/tss0的不同只不过体现在位置不同(非常明显),段基址不同(对应task.tss/ldt的位置)，特权都是0)
 	set_tss_desc(gdt+FIRST_TSS_ENTRY,&(init_task.task.tss));	//tsz: #course 从第5个数据开始利用，前三个用了，第4个空着用来隔离。TSS0（进程0的tss段）数据写到了第5个数据段;#personal 进程0的tss、ldt已经在INIT_TASK中写好了
 	set_ldt_desc(gdt+FIRST_LDT_ENTRY,&(init_task.task.ldt));	//tsz: #course 数据格式：空，进程代码段，进程数据段；FIRST_LDT_ENTRY=FIRST_TSS_ENTRY+1，也就意味着LDT0（进程0的LDT段）写到了第6个数据段
     //tsz: #course gdt一项8B

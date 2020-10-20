@@ -72,7 +72,7 @@ int copy_mem(int nr,struct task_struct * p)	// tsz: #course 内存被等分
     // 当前进程代码段和数据段在线性地址空间中的基地址。由于Linux-0.11内核
     // 还不支持代码和数据段分立的情况，因此这里需要检查代码段和数据段基址
     // 和限长是否都分别相同。否则内核显示出错信息，并停止运行。
-	code_limit=get_limit(0x0f);	// tsz: #course 在sched.h中；根据ldtr，使用的是进程0的ldt内容
+	code_limit=get_limit(0x0f);	// tsz: #course 在sched.h中；根据ldtr，使用的是父进程的ldt内容
 	data_limit=get_limit(0x17);
 	old_code_base = get_base(current->ldt[1]);
 	old_data_base = get_base(current->ldt[2]);
@@ -87,9 +87,9 @@ int copy_mem(int nr,struct task_struct * p)	// tsz: #course 内存被等分
     // 否则表示出错，则释放刚申请的页表项。
 	new_data_base = new_code_base = nr * 0x4000000;	// tsz: #course 64M，这64M是进程的用户态用的；每个进程都分配64M，那么一共就会占用4GB(#personal 当然由于进程0不用这64MB，因此内存不会不够用);#note  注意这是映射关系，不是分配来的；#ques 16MB到64MB间的空间用来干什么了?
 	p->start_code = new_code_base;	// tsz: #personal #note 从这里能找到这个空间的开始地址
-	set_base(p->ldt[1],new_code_base);	// tsz: #course #think 更改基址，#ques 但是没改限长，为什么?#answ 为了安全共享父进程内存
+	set_base(p->ldt[1],new_code_base);	// tsz: #course #think 更改基址，#ques 但是没改限长，为什么?#answ 为了安全共享父进程内存;#ques 那自己段限长不够用怎么办?
 	set_base(p->ldt[2],new_data_base);
-	if (copy_page_tables(old_data_base,new_data_base,data_limit)) {	// tsz: #course 传的是父进程数据段的限长，依然是640K的限长
+	if (copy_page_tables(old_data_base,new_data_base,data_limit)) {	// tsz: #course 传的是父进程数据段的限长，依然是640K的限长;
 		printk("free_page_tables: from copy_mem\n");
 		free_page_tables(new_data_base,data_limit);
 		return -ENOMEM;
@@ -110,10 +110,10 @@ int copy_mem(int nr,struct task_struct * p)	// tsz: #course 内存被等分
 // 2. 在刚进入system_call时压入栈的段寄存器ds、es、fs和edx、ecx、ebx；
 // 3. 调用sys_call_table中sys_fork函数时压入栈的返回地址(用参数none表示)；
 // 4. 在调用copy_process()分配任务数组项号。
-int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,	// tsz: #impo 右序进栈，所以看到最右边的参数是int80压的栈，还有一些栈是在system_call中压的栈，最后一部分栈是sys_fork压的栈；nr是eax，是find_empty_process的返回值
-		long ebx,long ecx,long edx,
+int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,	// tsz: #impo 右序进栈，所以看到最右边的参数是int80压的栈，还有一些栈是在system_call中压的栈，最后一部分栈是sys_fork压的栈；nr是eax，是find_empty_process的返回值;这一行的none是call sys_call_table(,%eax,4)压的栈，剩下的是在sys_fork中压的栈
+		long ebx,long ecx,long edx,	// tsz: #personal 这两行的参数来自于system_call中的压栈
 		long fs,long es,long ds,
-		long eip,long cs,long eflags,long esp,long ss)
+		long eip,long cs,long eflags,long esp,long ss)	// tsz: #personal 这一行的参数来自于int80的压栈
 {
 	struct task_struct *p;
 	int i;
@@ -124,6 +124,7 @@ int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,	// tsz: #i
     // find_empty_process()返回。接着把当前进程任务结构内容复制到刚申请到
     // 的内存页面p开始处。
 	p = (struct task_struct *) get_free_page();	// tsz: #course 能玩页了，pg打开了，cr3和页目录表初始化好了，mem_map，注意不是用union来转换类型，而是用task_struct;#impo 回去看这个函数，这个函数重要；作用为将父进程的task_struct的内容复制过来（当然只复制了一个task_struct的内容，没有copy stack的内容）
+	// tsz: #personal #note 每个进程最多申请(64/4)+1=17个page，63个进程最多申请1071个page，而mem_map管理着4284个page，应该是够的
 	if (!p)
 		return -EAGAIN;
 	task[nr] = p;	// tsz: #personal 已经有了调度的资格
@@ -153,7 +154,7 @@ int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,	// tsz: #i
 	p->tss.ss0 = 0x10;                      // 内核态栈的段选择符(与内核数据段相同)
 	p->tss.eip = eip;                       // 指令代码指针	// tsz: #course 3特权，int80后面那句的地址；#personal #impo 这些压栈的内容进行手动复制的原因在于，进程0没有发生调度，可能这些即时的状态没有被保存在tss中
 	p->tss.eflags = eflags;                 // 标志寄存器	// tsz: #course #impo eflags在内存，dangerous，将eflags的iopl修改成3就能为所欲为（滑稽）；#impo 可以推到tss、task_struct的其它字段
-	p->tss.eax = 0;                         // #note 这是当fork()返回时新进程会返回0的原因所在	// tsz: #course 写死了，因为后头有个扣
+	p->tss.eax = 0;                         // #note 这是当fork()返回时新进程会返回0的原因所在	// tsz: #course 写死了，在执行Int80后面的一句if(__res>=0)可以用来判断当前进程到底子进程还是父进程
 	p->tss.ecx = ecx;
 	p->tss.edx = edx;
 	p->tss.ebx = ebx;
@@ -167,7 +168,7 @@ int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,	// tsz: #i
 	p->tss.ds = ds & 0xffff;
 	p->tss.fs = fs & 0xffff;
 	p->tss.gs = gs & 0xffff;
-	p->tss.ldt = _LDT(nr);                  // 任务局部表描述符的选择符(LDT描述符在GDT中)	// tsz: #personal 注意这是LDT的的选择符
+	p->tss.ldt = _LDT(nr);                  // 任务局部表描述符的选择符( )	// tsz: #personal 注意这是tss中的ldt，所以是LDT的的选择符
 	p->tss.trace_bitmap = 0x80000000;       // 高16位有效	// tsz: #personal #ques
     // 如果当前任务使用了协处理器，就保存其上下文。汇编指令clts用于清除控制寄存器CRO中
     // 的任务已交换(TS)标志。每当发生任务切换，CPU都会设置该标志。该标志用于管理数学协
@@ -181,7 +182,7 @@ int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,	// tsz: #i
     // 接下来复制进程页表。即在线性地址空间中设置新任务代码段和数据段描述符中的基址和限长，
     // 并复制页表。如果出错(返回值不是0)，则复位任务数组中相应项并释放为该新任务分配的用于
     // 任务结构的内存页。
-	if (copy_mem(nr,p)) {
+	if (copy_mem(nr,p)) {	// tsz: #personal 如果复制出错
 		task[nr] = NULL;
 		free_page((long) p);
 		return -EAGAIN;
@@ -204,7 +205,7 @@ int copy_process(int nr,long ebp,long edi,long esi,long gs,long none,	// tsz: #i
     // 要包括'(nr<<1)'.程序然后把新进程设置成就绪态。另外在任务切换时，任务寄存器tr由
     // CPU自动加载。最后返回新进程号。
 	set_tss_desc(gdt+(nr<<1)+FIRST_TSS_ENTRY,&(p->tss));
-	set_ldt_desc(gdt+(nr<<1)+FIRST_LDT_ENTRY,&(p->ldt));
+	set_ldt_desc(gdt+(nr<<1)+FIRST_LDT_ENTRY,&(p->ldt));	// tsz: #personal 直接用了父进程的ldt描述符
 	p->state = TASK_RUNNING;	/* do this last, just in case */	// tsz: #course 就绪态
 	return last_pid;
 }
@@ -222,7 +223,7 @@ int find_empty_process(void)
 	repeat:
 		if ((++last_pid)<0) last_pid=1;
 		for(i=0 ; i<NR_TASKS ; i++)
-			if (task[i] && task[i]->pid == last_pid) goto repeat;
+			if (task[i] && task[i]->pid == last_pid) goto repeat;	// tsz: #book 验证last_pid有效;#personal 因为:1)当last_pi置1后，每次加一都不能保证last_pid有效;2)进行一定的分配之后，进程的last_pid是混乱的，因此要遍历整个task数组检查
 	for(i=1 ; i<NR_TASKS ; i++)         // 任务0项被排除在外
 		if (!task[i])
 			return i;

@@ -135,9 +135,9 @@ type name(void) \
 { \
 long __res; \
 __asm__ volatile ("int $0x80" \	// tsz: #course #think 系统自动压栈,压在了内核栈还是用户栈?#answ 前者，压在肯定被压在调用函数那边，不然无法返回；Int80导致了系统调用对应的中断处理函数system_call；#note #impo 使用int 80之后，硬件来完成对应操作
-	: "=a" (__res) \
-	: "0" (__NR_##name)); \	// tsz: #course __NR_fork号码为2
-if (__res >= 0) \
+	: "=a" (__res) \	// tsz: #book 用eax存储返回结果
+	: "0" (__NR_##name)); \	// tsz: #course 0代表同上面的寄存器，即用eax传递参数，__NR_fork为2，即传入2
+if (__res >= 0) \	// tsz: #book #note #impo 子进程执行的第一条指令
 	return (type) __res; \
 errno = -__res; \
 return -1; \

@@ -220,12 +220,12 @@ int free_page_tables(unsigned long from,unsigned long size)
 // 表，原物理内存区将被共享。此后两个进程（父进程和其子进程）将共享内存区，直到
 // 有一个进程执行谢操作时，内核才会为写操作进程分配新的内存页(写时复制机制)。
 // 参数from、to是线性地址，size是需要复制（共享）的内存长度，单位是byte.
-int copy_page_tables(unsigned long from,unsigned long to,long size)	// tsz: #personal 对于进程1来说,from是0，to是其对应的64M内存空间的起始地址，size是段限长，也就是640K
+int copy_page_tables(unsigned long from,unsigned long to,long size)	// tsz: #personal 对于进程1来说,from是0，to是其对应的64M内存空间的起始地址，size是父进程数据段限长，对于进程0来说也就是640K
 {
-	unsigned long * from_page_table;
+	unsigned long * from_page_table;	// tsz: #personal 指向页表表项的指针;long刚好对应一个表项大小
 	unsigned long * to_page_table;
-	unsigned long this_page;
-	unsigned long * from_dir, * to_dir;
+	unsigned long this_page;	// tsz: #personal 页表项交换中介
+	unsigned long * from_dir, * to_dir;	// tsz: #personal 指向的是页目录表表项的指针
 	unsigned long nr;
 
     // #note 首先检测参数给出的原地址from和目的地址to的有效性。原地址和目的地址都需要
@@ -236,14 +236,14 @@ int copy_page_tables(unsigned long from,unsigned long to,long size)	// tsz: #per
     // 算要复制的内存块占用的页表数(即目录项数)。
 	if ((from&0x3fffff) || (to&0x3fffff))	// tsz: #personal 检验是否4mb对齐
 		panic("copy_page_tables called with wrong alignment");
-	from_dir = (unsigned long *) ((from>>20) & 0xffc); /* _pg_dir = 0 */	// tsz: #course 以MB为单位，和ffc与之后，是4MB的倍数
-	to_dir = (unsigned long *) ((to>>20) & 0xffc);
-	size = ((unsigned) (size+0x3fffff)) >> 22;
+	from_dir = (unsigned long *) ((from>>20) & 0xffc); /* _pg_dir = 0 */	// tsz: #course 以MB为单位，和ffc与之后，是4MB的倍数;原理：假设页目录表项N，其起始地址在4*(N-1)处，管理的地址在4MB*(N-1)-4MB*N => 页目录表项的起始地址与管理的地址差1兆倍数。&0xffc是当地址不整齐是，让算出来页目录表项地址与4B对齐(与先与4MB对齐之后再算页目录表项地址目的一致)
+	to_dir = (unsigned long *) ((to>>20) & 0xffc);	// tsz: #personal #note #impo 页目录表是在用户程序空间
+	size = ((unsigned) (size+0x3fffff)) >> 22;	// tsz: #personal 一个页表管4MB，是要复制的页目录表数，也是要遍历的页目录表项数;#skill 先加(4MB-1)相当于ceiling(size)
     // 在得到了源起始目录项指针from_dir和目的起始目录项指针to_dir以及需要复制的
     // 页表个数size后，下面开始对每个页目录项依次申请1页内存来保存对应的页表，并
     // 且开始页表项复制操作。如果目的目录指定的页表已经存在(P=1)，则出错死机。
     // 如果源目录项无效，即指定的页表不存在(P=1),则继续循环处理下一个页目录项。
-	for( ; size-->0 ; from_dir++,to_dir++) {
+	for( ; size-->0 ; from_dir++,to_dir++) {	// tsz: #personal 大循环，遍历页目录表项，每个循环复制一个页表
 		if (1 & *to_dir)	// tsz: #course 页目录表项32bit只用20bit（因为页是对齐到4k的），后面12是一些属性位，最后三位为P、r/w、us(user/supervisor)，这里suppose对应页表项的p位为0
 			panic("copy_page_tables: already exist");	// tsz: #course 死循环去了
 		if (!(1 & *from_dir))	// tsz: 不存在就跳过
@@ -252,8 +252,8 @@ int copy_page_tables(unsigned long from,unsigned long to,long size)	// tsz: #per
         // from_page_table。为了保存目的目录项对应的页表，需要在住内存区中申请1
         // 页空闲内存页。如果取空闲页面函数get_free_page()返回0，则说明没有申请
         // 到空闲内存页面，可能是内存不够。于是返回-1值退出。
-		from_page_table = (unsigned long *) (0xfffff000 & *from_dir);	// tsz: #course 去掉最后12bit
-		if (!(to_page_table = (unsigned long *) get_free_page()))	// tsz: #course 注意这个get_free_page是从内核中获得空页，用这个页去创建进程空间的页表
+		from_page_table = (unsigned long *) (0xfffff000 & *from_dir);	// tsz: #course 清零最后12bit，他就从页目录表项中得到了指向页表的指针
+		if (!(to_page_table = (unsigned long *) get_free_page()))	// tsz: #course 注意这个get_free_page是从内核中获得空页，用这个页去创建复制的页表；这个页表在内核空间里面(倘若在用户空间，可以轻易修改task_struct和页表指向内容)
 			return -1;	/* Out of memory, see freeing */
         // 否则我们设置目的目录项信息，把最后3位置位，即当前目录的目录项 | 7，
         // 表示对应页表映射的内存页面是用户级的，并且可读写、存在(Usr,R/W,Present).
@@ -262,13 +262,13 @@ int copy_page_tables(unsigned long from,unsigned long to,long size)	// tsz: #per
         // 针对当前处理的页目录项对应的页表，设置需要复制的页面项数。如果是在内
         // 核空间，则仅需复制头160页对应的页表项(nr=160),对应于开始640KB物理内存
         // 否则需要复制一个页表中的所有1024个页表项(nr=1024)，可映射4MB物理内存。
-		*to_dir = ((unsigned long) to_page_table) | 7;	// tsz: #course  7:存在/可读写/u
-		nr = (from==0)?0xA0:1024;	// tsz: #course A0是160，如果是进程0，复制160项页表项->对应640k的限长；若是其他进程，则是1024项
+		*to_dir = ((unsigned long) to_page_table) | 7;	// tsz: #course  7:存在/可读写/u;页目录表项在用户程序空间，而页表则在内核空间
+		nr = (from==0)?0xA0:1024;	// tsz: #course 对于这个页表要复制的项数：A0=160，如果父进程是进程0，只要复制160项页表项(对应640k的限长)；若是其他进程，应该复制完所有的页表项(1024项)
         // 此时对于当前页表，开始循环复制指定的nr个内存页面表项。先取出源页表的
         // 内容，如果当前源页表没有使用，则不用复制该表项，继续处理下一项。否则
         // 复位表项中R/W标志(位1置0)，即让页表对应的内存页面只读。然后将页表项复制
         // 到目录页表中。
-		for ( ; nr-- > 0 ; from_page_table++,to_page_table++) {	// tsz: #course 1.服务器中有很多线程执行的是相同的代码；2. 依托父进程的代码来创建自己的进程内容
+		for ( ; nr-- > 0 ; from_page_table++,to_page_table++) {	// tsz: #course 直接用父进程内容的原因：1.服务器中有很多线程执行的是相同的代码；2. 依托父进程的代码来创建自己的进程内容；#personal 小循环，复制一个页的页表项
 			this_page = *from_page_table;
 			if (!(1 & this_page))	// tsz: #course 检查是否存在
 				continue;
@@ -287,15 +287,15 @@ int copy_page_tables(unsigned long from,unsigned long to,long size)	// tsz: #per
             // 因为现在开始有两个进程公用内存区了。若其中1个进程需要进行写操作，
             // 则可以通过页异常写保护处理为执行写操作的进程匹配1页新空闲页面，也
             // 即进行写时复制(copy on write)操作。
-			if (this_page > LOW_MEM) {
-				*from_page_table = this_page;
+			if (this_page > LOW_MEM) {	// tsz: #personal this_page的值是对应页的地址+属性带来的低位的value；被复制的页的地址在主存区，说明被复制的不是进程0
+				*from_page_table = this_page;	// tsz: #personal 使源页表的表项也设置为只读，双方公用内存区，双方要写时都要写时复制
 				this_page -= LOW_MEM;
 				this_page >>= 12;
-				mem_map[this_page]++;
+				mem_map[this_page]++;	// tsz: #personal #ques
 			}
 		}
 	}
-	invalidate();	// tsz: #course 刷tlb
+	invalidate();	// tsz: #course 刷tlb；#book 重置CR3，刷新"页变换高速缓存"
 	return 0;
 }
 

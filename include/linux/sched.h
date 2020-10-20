@@ -103,7 +103,7 @@ struct task_struct {	// tsz: #personal #note #impo
 	unsigned long close_on_exec;
 	struct file * filp[NR_OPEN];
 /* ldt for this task 0 - zero 1 - cs 2 - ds&ss */
-	struct desc_struct ldt[3];	// tsz: #personal #ques 为什么ldt有3个?
+	struct desc_struct ldt[3];	// tsz: #personal 3个，空、进程代码段、进程数据段;#note task_struct中只有tss和ldt，但是没有放在gdt中的tss和ldt的描述符
 /* tss for this task */
 	struct tss_struct tss;
 };
