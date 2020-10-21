@@ -38,7 +38,7 @@
 // 下面_syscall0()是unistd.h中的内嵌宏代码。以嵌入汇编的形式调用Linux的系统调用中断
 // 0x80.该中断是所有系统调用的入口。该条语句实际上是int fork()创建进程系统调用。可展
 // 开看之就会立刻明白。syscall0名称中最后的0表示无参数，1表示1个参数。
-static inline _syscall0(int,fork)	// tsz: #personal 展开成fork函数的定义，宏定义在unistd.h
+static inline _syscall0(int,fork)	// tsz: #personal 展开成fork函数的定义，宏定义在unistd.h;#course inline的好处是能够接受编译器的语法检查;#think inline还有什么作用
 // int pause() 系统调用，暂停进程的执行，直到收到一个信号
 static inline _syscall0(int,pause)
 // int setup(void * BIOS)系统调用，仅用于linux初始化(仅在这个程序中被调用)
@@ -187,7 +187,7 @@ void main(void)		/* This really IS void, no error here. */
 	sti();                                  // 所有初始化工作都做完了，开启中断	//tsz: #course #personal 开中断，关中断在setup.s的cli()，两个函数中间都在和中断有关的东西打交道；函数见system.h
     // 下面过程通过在堆栈中设置的参数，利用中断返回指令启动任务0执行。
 	move_to_user_mode();                    // 移到用户模式下执行
-	if (!fork()) {		/* we count on this going ok */	// tsz: #personal 在unistd.h中的_syscall0声明
+	if (!fork()) {		/* we count on this going ok */	// tsz: #personal 在unistd.h中的_syscall0声明;#book 对于进程0而言，返回子进程进程号1，不会执行init()
 		init();                             // 在新建的子进程(任务1)中执行。
 	}
 /*
@@ -237,7 +237,7 @@ void init(void)
     // setup()是一个系统调用。用于读取硬盘参数包括分区表信息并加载虚拟盘(若存在的话)
     // 和安装根文件系统设备。该函数用25行上的宏定义，对应函数是sys_setup()，在块设备
     // 子目录kernel/blk_drv/hd.c中。
-	setup((void *) &drive_info);        // drive_info结构是2个硬盘参数表
+	setup((void *) &drive_info);        // drive_info结构是2个硬盘参数表	// tsz: #course syscall1的宏展开
     // 下面以读写访问方式打开设备"/dev/tty0",它对应终端控制台。由于这是第一次打开文件
     // 操作，因此产生的文件句柄号(文件描述符)肯定是0。该句柄是UNIX类操作系统默认的
     // 控制台标准输入句柄stdin。这里再把它以读和写的方式别人打开是为了复制产生标准输出(写)

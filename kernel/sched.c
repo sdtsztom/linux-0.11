@@ -82,7 +82,7 @@ long startup_time=0;                                // 开机时间，从1970:0:
 struct task_struct *current = &(init_task.task);    // 当前任务指针(初始化指向任务0)
 struct task_struct *last_task_used_math = NULL;     // 使用过协处理器任务的指针。
 
-struct task_struct * task[NR_TASKS] = {&(init_task.task), }; // 定义任务指针数组	// tsz: #personal task是task_struct指针的数组，共有64个
+struct task_struct * task[NR_TASKS] = {&(init_task.task), }; // 定义任务指针数组	// tsz: #personal #note task是task_struct指针的数组，是指针的指针，共有64个
 
 // 定义用户堆栈，共1K项，容量4K字节。在内核初始化操作过程中被用作内核栈，初始化完成
 // #note 以后将被用作任务0的用户态堆栈。在运行任务0之前它是内核栈，以后用作任务0和1的用
@@ -168,10 +168,10 @@ void schedule(void)
         // 这段代码也是从任务数组的最后一个任务开始循环处理，并跳过不含任务的数组槽。比较
         // 每个就绪状态任务的counter(任务运行时间的递减滴答计数)值，哪一个值大，运行时间还
         // 不长，next就值向哪个的任务号。
-		while (--i) {
+		while (--i) {	// tsz: #course #think 万一都没时间片/都挂起了怎么办?
 			if (!*--p)
 				continue;
-			if ((*p)->state == TASK_RUNNING && (*p)->counter > c)
+			if ((*p)->state == TASK_RUNNING && (*p)->counter > c)	// tsz: #book 找出就绪态中counter中最大的,#course counter越大等的时间越长;这个版本的priority通过增加其时间片体现
 				c = (*p)->counter, next = i;
 		}
         // 如果比较得出有counter值不等于0的结果，或者系统中没有一个可运行的任务存在(此时c
@@ -182,11 +182,11 @@ void schedule(void)
 		for(p = &LAST_TASK ; p > &FIRST_TASK ; --p)
 			if (*p)
 				(*p)->counter = ((*p)->counter >> 1) +
-						(*p)->priority;
+						(*p)->priority;	// tsz: #book counter=counter/2+priority
 	}
     // 用下面的宏把当前任务指针current指向任务号Next的任务，并切换到该任务中运行。上面Next
     // 被初始化为0。此时任务0仅执行pause()系统调用，并又会调用本函数。
-	switch_to(next);     // 切换到Next任务并运行。
+	switch_to(next);     // 切换到Next任务并运行。	// tsz: #personal in sched.h
 }
 
 // 转换当前任务状态为可中断的等待状态，并重新调度。
@@ -194,7 +194,7 @@ void schedule(void)
 // 一个信号捕获函数。只有当捕获了一个信号，并且信号捕获处理函数返回，pause()才会返回。此时
 // pause()返回值应该是-1，并且errno被置为EINTR。这里还没有完全实现(直到0.95版)
 int sys_pause(void)
-{
+{	// tsz: #course 可中断等待状态，产生中断或者其他进程给这个进程发送特定信号才可能变为就绪态
 	current->state = TASK_INTERRUPTIBLE;
 	schedule();
 	return 0;
