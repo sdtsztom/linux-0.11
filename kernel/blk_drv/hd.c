@@ -80,22 +80,23 @@ int sys_setup(void * BIOS)
 		return -1;
 	callable = 0;
 #ifndef HD_TYPE
-	for (drive=0 ; drive<2 ; drive++) {
-		hd_info[drive].cyl = *(unsigned short *) BIOS;
-		hd_info[drive].head = *(unsigned char *) (2+BIOS);
-		hd_info[drive].wpcom = *(unsigned short *) (5+BIOS);
-		hd_info[drive].ctl = *(unsigned char *) (8+BIOS);
-		hd_info[drive].lzone = *(unsigned short *) (12+BIOS);
-		hd_info[drive].sect = *(unsigned char *) (14+BIOS);
-		BIOS += 16;
+	for (drive=0 ; drive<2 ; drive++) {	// tsz: #book2 以下部分注释来自内核完全注释
+		hd_info[drive].cyl = *(unsigned short *) BIOS;			// 柱面数	// tsz: #personal 结构类型是hd_i_struct
+		hd_info[drive].head = *(unsigned char *) (2+BIOS);		// 磁头数
+		hd_info[drive].wpcom = *(unsigned short *) (5+BIOS);	// 写前预补偿柱面号
+		hd_info[drive].ctl = *(unsigned char *) (8+BIOS);		// 控制字节
+		hd_info[drive].lzone = *(unsigned short *) (12+BIOS);	// 磁头着陆区柱面号
+		hd_info[drive].sect = *(unsigned char *) (14+BIOS);		// 每磁道扇区数
+		BIOS += 16;	// 每个硬盘的参数表长16直接，这里BIOS指向下一个表
 	}
-	if (hd_info[1].cyl)
-		NR_HD=2;
+	if (hd_info[1].cyl)	// tsz: #book 判断有几块硬盘
+		NR_HD=2;	// 磁盘数置为2
 	else
 		NR_HD=1;
 #endif
+// tsz: #book 一个物理硬盘最多可以分为4个逻辑盘，0是物理盘，1~4是逻辑盘，共5个，第1个物理盘是0*5，第2个物理盘是1*5
 	for (i=0 ; i<NR_HD ; i++) {
-		hd[i*5].start_sect = 0;
+		hd[i*5].start_sect = 0;	// tsz: #personal 结构类型是hd_struct
 		hd[i*5].nr_sects = hd_info[i].head*
 				hd_info[i].sect*hd_info[i].cyl;
 	}
@@ -133,6 +134,7 @@ int sys_setup(void * BIOS)
 		hd[i*5].start_sect = 0;
 		hd[i*5].nr_sects = 0;
 	}
+	// tsz: #book 第1个个物理盘设备号是0x300，第2个是0x305，读每个物理硬盘的0号块，即引导块，有分区信息
 	for (drive=0 ; drive<NR_HD ; drive++) {
 		if (!(bh = bread(0x300 + drive*5,0))) {
 			printk("Unable to read partition table of drive %d\n\r",

@@ -498,7 +498,7 @@ struct buffer_head * breada(int dev,int first, ...)
 // 缓冲区中所有内存被分配完毕。
 void buffer_init(long buffer_end)
 {
-	struct buffer_head * h = start_buffer;	// tsz: #personal head从内核代码末端开始，buffer_head的结构定义在fs.h中,共34B
+	struct buffer_head * h = start_buffer;	// tsz: #personal buffer_head从内核代码末端开始，buffer_head的结构定义在fs.h中,共34B，是buffer块的控制结构
 	void * b;	// tsz: #personal 缓冲区高位
 	int i;
 

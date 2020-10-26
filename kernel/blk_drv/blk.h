@@ -29,7 +29,7 @@ struct request {
 	char * buffer;
 	struct task_struct * waiting;
 	struct buffer_head * bh;
-	struct request * next;
+	struct request * next;	// tsz: #book 说明可以互连
 };
 
 /*
@@ -48,7 +48,7 @@ struct blk_dev_struct {
 };
 
 extern struct blk_dev_struct blk_dev[NR_BLK_DEV];
-extern struct request request[NR_REQUEST];
+extern struct request request[NR_REQUEST];	// tsz: #book 数组链表
 extern struct task_struct * wait_for_request;
 
 #ifdef MAJOR_NR

@@ -143,7 +143,7 @@ errno = -__res; \
 return -1; \
 }
 
-#define _syscall1(type,name,atype,a) \
+#define _syscall1(type,name,atype,a) \	// tsz: #personal 由此可见，syscall后面的数值表示的是参数的个数
 type name(atype a) \
 { \
 long __res; \
