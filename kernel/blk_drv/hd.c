@@ -42,7 +42,7 @@ static int reset = 1;
 /*
  *  This struct defines the HD's and their types.
  */
-struct hd_i_struct {
+struct hd_i_struct {	// tsz: #personal 物理硬盘的物理信息
 	int head,sect,cyl,wpcom,lzone,ctl;
 	};
 #ifdef HD_TYPE
@@ -53,7 +53,7 @@ struct hd_i_struct hd_info[] = { {0,0,0,0,0,0},{0,0,0,0,0,0} };
 static int NR_HD = 0;
 #endif
 
-static struct hd_struct {
+static struct hd_struct {	// tsz: #personal 每个逻辑硬盘的扇区信息，5是每个硬盘最大的逻辑分区数
 	long start_sect;
 	long nr_sects;
 } hd[5*MAX_HD]={{0,0},};
@@ -96,9 +96,9 @@ int sys_setup(void * BIOS)
 #endif
 // tsz: #book 一个物理硬盘最多可以分为4个逻辑盘，0是物理盘，1~4是逻辑盘，共5个，第1个物理盘是0*5，第2个物理盘是1*5
 	for (i=0 ; i<NR_HD ; i++) {
-		hd[i*5].start_sect = 0;	// tsz: #personal 结构类型是hd_struct
+		hd[i*5].start_sect = 0;	// tsz: #personal 结构类型是hd_struct，现在都只有一个逻辑盘，所以都只设置每个物理硬盘的第一个逻辑硬盘
 		hd[i*5].nr_sects = hd_info[i].head*
-				hd_info[i].sect*hd_info[i].cyl;
+				hd_info[i].sect*hd_info[i].cyl;	// tsz: #personal 磁道数*柱面数*每柱面扇区数为总共的扇区数
 	}
 
 	/*

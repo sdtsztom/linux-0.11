@@ -239,7 +239,7 @@ static struct buffer_head * find_buffer(int dev, int block)
 	for (tmp = hash(dev,block) ; tmp != NULL ; tmp = tmp->b_next)
 		if (tmp->b_dev==dev && tmp->b_blocknr==block)
 			return tmp;
-	return NULL;
+	return NULL;	// tsz: #personal 现在什么都没有，返回NULL
 }
 
 /*
@@ -263,7 +263,7 @@ struct buffer_head * get_hash_table(int dev, int block)
         // 因此有必要在验证该缓冲块的正确性，并返回缓冲块头指针。
 		bh->b_count++;
 		wait_on_buffer(bh);
-		if (bh->b_dev == dev && bh->b_blocknr == block)
+		if (bh->b_dev == dev && bh->b_blocknr == block)	// tsz: #personal #note #impo 睡眠之后要检查正确性 
 			return bh;
         // 如果在睡眠时该缓冲块所属的设备号或块设备号发生了改变，则撤消对它的
         // 引用计数，重新寻找。
@@ -297,7 +297,7 @@ repeat:
 	tmp = free_list;
 	do {
         // 如果该缓冲区正被使用（引用计数不等于0），则继续扫描下一项。对于
-        // b_count = 0的块，即高速缓冲中当前没有引用的块不一定就是干净的
+        // #note b_count = 0的块，即高速缓冲中当前没有引用的块不一定就是干净的
         // (b_dirt=0)或没有锁定的(b_lock=0)。因此，我们还是需要继续下面的判断
         // 和选择。例如当一个任务该写过一块内容后就释放了，于是该块b_count()=0
         // 但b_lock不等于0；当一个任务执行breada()预读几个块时，只要ll_rw_block()
@@ -388,7 +388,7 @@ struct buffer_head * bread(int dev,int block)
     // 可以直接使用，则返回。
 	if (!(bh=getblk(dev,block)))
 		panic("bread: getblk returned NULL\n");
-	if (bh->b_uptodate)
+	if (bh->b_uptodate)	// tsz: #personal 已更新
 		return bh;
     // 否则我们就调用底层快设备读写ll_rw_block函数，产生读设备块请求。然后
     // 等待指定数据块被读入，并等待缓冲区解锁。在睡眠醒来之后，如果该缓冲区已
@@ -525,7 +525,7 @@ void buffer_init(long buffer_end)
 		h->b_uptodate = 0;                  // 缓冲块更新标志(或称数据有效标志)
 		h->b_wait = NULL;                   // 指向等待该缓冲块解锁的进程
 		h->b_next = NULL;                   // 指向具有相同hash值的下一个缓冲头
-		h->b_prev = NULL;                   // 指向具有相同hash值的前一个缓冲头
+		h->b_prev = NULL;                   // 指向具有相同hash值的前一个缓冲头	// tsz: #personal 注意和下面的b_prev_free的区别
 		h->b_data = (char *) b;             // 指向对应缓冲块数据块（1024字节）
 		h->b_prev_free = h-1;               // 指向链表中前一项
 		h->b_next_free = h+1;               // 指向连表中后一项
