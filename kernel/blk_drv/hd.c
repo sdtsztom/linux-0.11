@@ -136,7 +136,7 @@ int sys_setup(void * BIOS)
 	}
 	// tsz: #book 第1个个物理盘设备号是0x300，第2个是0x305，读每个物理硬盘的0号块，即引导块，有分区信息
 	for (drive=0 ; drive<NR_HD ; drive++) {
-		if (!(bh = bread(0x300 + drive*5,0))) {
+		if (!(bh = bread(0x300 + drive*5,0))) {	// tsz: #course 300的含义其实是将第9位设置成硬盘的设备号3，在这里传入设备号后在ll_rw_block()中取出设备号并找到对应的blk_dev
 			printk("Unable to read partition table of drive %d\n\r",
 				drive);
 			panic("");
@@ -351,7 +351,7 @@ void do_hd_request(void)
 // 允许硬盘控制器发送中断信号。中断描述符表IDT内中断门描述符设置宏set_intr_gate().
 void hd_init(void)
 {
-	blk_dev[MAJOR_NR].request_fn = DEVICE_REQUEST;      // do_hd_request()	// tsz: #personal 编号为3
+	blk_dev[MAJOR_NR].request_fn = DEVICE_REQUEST;      // do_hd_request()	// tsz: #personal 编号为3;#note #impo 这个是对所有请求的处理函数
 	set_intr_gate(0x2E,&hd_interrupt);	// tsz: #personal 中断函数在system_call.s中
 	outb_p(inb_p(0x21)&0xfb,0x21);                      // 复位接联的主8259A int2的屏蔽位
 	outb(inb_p(0xA1)&0xbf,0xA1);                        // 复位硬盘中断请求屏蔽位(在从片上)

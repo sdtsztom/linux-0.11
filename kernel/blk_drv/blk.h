@@ -20,7 +20,7 @@
  * paging, 'bh' is NULL, and 'waiting' is used to wait for
  * read/write completion.
  */
-struct request {
+struct request {	// tsz: #personal 请求项的结构
 	int dev;		/* -1 if no request */
 	int cmd;		/* READ or WRITE */
 	int errors;
@@ -42,12 +42,12 @@ struct request {
 ((s1)->dev < (s2)->dev || ((s1)->dev == (s2)->dev && \
 (s1)->sector < (s2)->sector))))
 
-struct blk_dev_struct {
-	void (*request_fn)(void);
-	struct request * current_request;
+struct blk_dev_struct {	// tsz: #personal 一个硬件的控制通过请求处理函数和请求项来定义
+	void (*request_fn)(void);	// tsz: #personal #note #immp 请求函数是对所有请求的处理函数，注意其与请求项的联系
+	struct request * current_request;	// tsz: #personal 请求项是请求队列
 };
 
-extern struct blk_dev_struct blk_dev[NR_BLK_DEV];
+extern struct blk_dev_struct blk_dev[NR_BLK_DEV];	// tsz: #course 有设备种类个，每个元素的结构与请求函数和请求项相关，即每个元素管每一类设备的请求
 extern struct request request[NR_REQUEST];	// tsz: #book 数组链表
 extern struct task_struct * wait_for_request;
 

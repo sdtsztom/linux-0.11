@@ -30,7 +30,7 @@
 
 void buffer_init(long buffer_end);
 
-#define MAJOR(a) (((unsigned)(a))>>8)
+#define MAJOR(a) (((unsigned)(a))>>8)	// tsz: #personal b_dev是short，16bit
 #define MINOR(a) ((a)&0xff)
 
 #define NAME_LEN 14
@@ -65,12 +65,12 @@ __asm__("incl %0\n\tandl $4095,%0"::"m" (head))
 
 typedef char buffer_block[BLOCK_SIZE];
 
-struct buffer_head {	// tsz: #personal 34B
-	char * b_data;			/* pointer to data block (1024 bytes) */
-	unsigned long b_blocknr;	/* block number */
-	unsigned short b_dev;		/* device (0 = free) */
-	unsigned char b_uptodate;
-	unsigned char b_dirt;		/* 0-clean,1-dirty */
+struct buffer_head {	// tsz: #personal 34B;下面的注释来自赵炯的书
+	char * b_data;			/* pointer to data block (1024 bytes) */	//指针
+	unsigned long b_blocknr;	/* block number */	//块号
+	unsigned short b_dev;		/* device (0 = free) */	//数据源的设备号
+	unsigned char b_uptodate;	//更新标志：表示数据是否已经更新
+	unsigned char b_dirt;		/* 0-clean,1-dirty */	
 	unsigned char b_count;		/* users using this block */
 	unsigned char b_lock;		/* 0 - ok, 1 -locked */
 	struct task_struct * b_wait;

@@ -92,7 +92,7 @@ static void make_request(int major,int rw, struct buffer_head * bh)
 
 /* WRITEA/READA is special case - it is not really needed, so if the */
 /* buffer is locked, we just forget about it, else it's a normal read */
-	if ((rw_ahead = (rw == READA || rw == WRITEA))) {
+	if ((rw_ahead = (rw == READA || rw == WRITEA))) {	// tsz: #course 这里的A后缀是预读的意思
 		if (bh->b_lock)
 			return;
 		if (rw == READA)
@@ -139,19 +139,19 @@ repeat:
 	req->waiting = NULL;
 	req->bh = bh;
 	req->next = NULL;
-	add_request(major+blk_dev,req);
+	add_request(major+blk_dev,req);	// tsz: #course 核心
 }
 
 void ll_rw_block(int rw, struct buffer_head * bh)
 {
-	unsigned int major;
+	unsigned int major;	// tsz: #book2 主设备号，硬盘主设备号是3
 
 	if ((major=MAJOR(bh->b_dev)) >= NR_BLK_DEV ||
 	!(blk_dev[major].request_fn)) {
 		printk("Trying to read nonexistent block-device\n\r");
 		return;
 	}
-	make_request(major,rw,bh);
+	make_request(major,rw,bh);	// tsz: #personal 将块传递进去;#course bread中创建来的是READ类型
 }
 
 // 块设备初始化函数，由初始化程序main.c调用

@@ -26,3 +26,4 @@ Linus曾经说过：RTFSC - Read The Fucking Source Code.
 - TODO
 - answ(answer)
 - doubt：怀疑课堂上摘错了的部分
+- EMP(exam prediction)
