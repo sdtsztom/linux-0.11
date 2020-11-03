@@ -27,3 +27,6 @@ Linus曾经说过：RTFSC - Read The Fucking Source Code.
 - answ(answer)
 - doubt：怀疑课堂上摘错了的部分
 - EMP(exam prediction)
+- univ(universal)
+- desi(design principle)
+- fsum(function summary)

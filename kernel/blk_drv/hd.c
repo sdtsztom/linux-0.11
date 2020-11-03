@@ -76,7 +76,7 @@ int sys_setup(void * BIOS)
 	struct partition *p;
 	struct buffer_head * bh;
 
-	if (!callable)
+	if (!callable)	// tsz: #book 控制只调用一次
 		return -1;
 	callable = 0;
 #ifndef HD_TYPE
@@ -351,7 +351,7 @@ void do_hd_request(void)
 // 允许硬盘控制器发送中断信号。中断描述符表IDT内中断门描述符设置宏set_intr_gate().
 void hd_init(void)
 {
-	blk_dev[MAJOR_NR].request_fn = DEVICE_REQUEST;      // do_hd_request()	// tsz: #personal 编号为3;#note #impo 这个是对所有请求的处理函数
+	blk_dev[MAJOR_NR].request_fn = DEVICE_REQUEST;      // do_hd_request()	// tsz: #personal 编号为3;#note #impo 这个是对所有请求的处理函数，即上面的do_hd_request()
 	set_intr_gate(0x2E,&hd_interrupt);	// tsz: #personal 中断函数在system_call.s中
 	outb_p(inb_p(0x21)&0xfb,0x21);                      // 复位接联的主8259A int2的屏蔽位
 	outb(inb_p(0xA1)&0xbf,0xA1);                        // 复位硬盘中断请求屏蔽位(在从片上)

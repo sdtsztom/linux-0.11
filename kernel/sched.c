@@ -206,11 +206,11 @@ int sys_pause(void)
 // C函数参数只能传值，没有直接的方式让被调用函数改变调用该函数程序中变量的值。但是指针'*p'
 // 指向的目标(这里是任务结构)会改变，因此为了能修改调用该函数程序中原来就是指针的变量的值，
 // 就需要传递指针'*p'的指针，即'**p'.
-void sleep_on(struct task_struct **p)
+void sleep_on(struct task_struct **p)	// tsz: #course 指针的指针，想要修改wait_for_request，所以传入&wait_for_request
 {
 	struct task_struct *tmp;
 
-    // 若指针无效，则退出。(指针所指向的对象可以是NULL，但指针本身不应该为0).另外，如果
+    // #note 若指针无效，则退出。(指针所指向的对象可以是NULL，但指针本身不应该为0).另外，如果
     // 当前任务是任务0，则死机。因为任务0的运行不依赖自己的状态，所以内核代码把任务0置为
     // 睡眠状态毫无意义。
 	if (!p)
@@ -221,7 +221,7 @@ void sleep_on(struct task_struct **p)
     // 等等指针指向当前任务。这样就把当前任务插入到了*p的等待队列中。然后将当前任务置为
     // 不可中断的等待状态，并执行重新调度。
 	tmp = *p;
-	*p = current;
+	*p = current;	// tsz: #course wait_for_request指向当前task_struct
 	current->state = TASK_UNINTERRUPTIBLE;
 	schedule();	// tsz: #course 核心
     // 只有当这个等待任务被唤醒时，调度程序才又返回到这里，表示本进程已被明确的唤醒(就
@@ -233,7 +233,7 @@ void sleep_on(struct task_struct **p)
     // 那么当系统切换去执行头指针所指的进程A时，该进程才会继续执行下面的代码，把队列后一个
     // 进程B置位就绪状态(唤醒)。而当轮到B进程执行时，它也才可能继续执行下面的代码。若它
     // 后面还有等待的进程C，那它也会把C唤醒等。在这前面还应该添加一行：*p = tmp.
-	if (tmp)                    // 若在其前还有存在的等待的任务，则也将其置为就绪状态(唤醒).
+	if (tmp)                    // 若在其前还有存在的等待的任务，则也将其置为就绪状态(唤醒).	// tsz: #personal #note #impo #univ 一定要注意执行这行的是调度回来的本进程
 		tmp->state=0;
 }
 

@@ -191,21 +191,21 @@ static inline void remove_from_queues(struct buffer_head * bh)
 {
 /* remove from hash-queue */
 	if (bh->b_next)
-		bh->b_next->b_prev = bh->b_prev;
+		bh->b_next->b_prev = bh->b_prev;	// tsz: #personal 前其后继指向其前继
 	if (bh->b_prev)
 		bh->b_prev->b_next = bh->b_next;
     // 如果该缓冲区是该队列的头一个块，则让hash表的对应项指向本队列中的下一个
     // 缓冲区。
-	if (hash(bh->b_dev,bh->b_blocknr) == bh)
+	if (hash(bh->b_dev,bh->b_blocknr) == bh)	// tsz: #personal 说明了hash表可能还连着count=0的块;#ques 块会被主动释放吗?还同意在这个地方释放?
 		hash(bh->b_dev,bh->b_blocknr) = bh->b_next;
 /* remove from free list */
-	if (!(bh->b_prev_free) || !(bh->b_next_free))
+	if (!(bh->b_prev_free) || !(bh->b_next_free))	// tsz: #personal #desi 要z在底层多检查，而不是指望其他地方都写对、用对，写错的地方太多而且可扩展，是控制不住的。
 		panic("Free block list corrupted");
 	bh->b_prev_free->b_next_free = bh->b_next_free;
 	bh->b_next_free->b_prev_free = bh->b_prev_free;
     // 如果空闲链表头指向本缓冲区，则让其指向下一缓冲区。
 	if (free_list == bh)
-		free_list = bh->b_next_free;
+		free_list = bh->b_next_free;	// tsz: #personal #univ 都是要注意维护链表外界的指向链表种某些指定项的指针
 }
 
 //// 将缓冲块插入空闲链表尾部，同时放入hash队列中。
@@ -224,13 +224,14 @@ static inline void insert_into_queues(struct buffer_head * bh)
 	bh->b_next = NULL;
 	if (!bh->b_dev)
 		return;
-	bh->b_next = hash(bh->b_dev,bh->b_blocknr);
+	bh->b_next = hash(bh->b_dev,bh->b_blocknr);	// tsz: #personal #univ 都是从链表头插入，效率更高
 	hash(bh->b_dev,bh->b_blocknr) = bh;
 	bh->b_next->b_prev = bh;                // 此句前应添加"if (bh->b_next)"判断
 }
 
 //// 利用hash表在高速缓冲区中寻找给定设备和指定块号的缓冲区块。
 // 如果找到则返回缓冲区块的指针，否则返回NULL。
+// tsz: #personal #fsum #note 注意这是在hash表中寻找，若是hash表中没有，说明这个块还没有被缓冲进来，凡是缓冲进来过的都应该被hash表链接起来了
 static struct buffer_head * find_buffer(int dev, int block)
 {		
 	struct buffer_head * tmp;
@@ -251,6 +252,7 @@ static struct buffer_head * find_buffer(int dev, int block)
  */
 //// 利用hash表在高速缓冲区中寻找指定的缓冲块。若找到则对该缓冲块上锁
 // 返回块头指针。
+// tsz: #personal #fsum 若找到，则等待其解锁（注意解锁之后的检查）
 struct buffer_head * get_hash_table(int dev, int block)
 {
 	struct buffer_head * bh;
@@ -262,7 +264,7 @@ struct buffer_head * get_hash_table(int dev, int block)
         // 对该缓冲块增加引用计数，并等待该缓冲块解锁。由于经过了睡眠状态，
         // 因此有必要在验证该缓冲块的正确性，并返回缓冲块头指针。
 		bh->b_count++;
-		wait_on_buffer(bh);
+		wait_on_buffer(bh);	// tsz: #personal 等待其解锁
 		if (bh->b_dev == dev && bh->b_blocknr == block)	// tsz: #personal #note #impo 睡眠之后要检查正确性 
 			return bh;
         // 如果在睡眠时该缓冲块所属的设备号或块设备号发生了改变，则撤消对它的
@@ -284,6 +286,7 @@ struct buffer_head * get_hash_table(int dev, int block)
 // 检查指定（设备号和块号）的缓冲区是否已经在高速缓冲中。如果指定块已经在
 // 高速缓冲中，则返回对应缓冲区头指针退出；如果不在，就需要在高速缓冲中设置一个
 // 对应设备号和块好的新项。返回相应的缓冲区头指针。
+// tsz: #personal #fsum 搜索hash表，有就返回，没有则从freelist中选一个最好的块，进行必要 进行检查和和处理后，修改bh，修改对应的链表信息最后返回
 struct buffer_head * getblk(int dev,int block)
 {
 	struct buffer_head * tmp, * bh;
@@ -304,48 +307,50 @@ repeat:
         // 命令发出后，它就会递减b_count; 但此时实际上硬盘访问操作可能还在进行，
         // 因此此时b_lock=1, 但b_count=0.
 		if (tmp->b_count)	// tsz: #course 刚写完就退出就会出现count=0&dirty=1;先脏后同步
-			continue;
+			continue;	// tsz: #personal count!=0，直接去扫描下一项
         // 如果缓冲头指针bh为空，或者tmp所指缓冲头的标志(修改、锁定)权重小于bh
         // 头标志的权重，则让bh指向tmp缓冲块头。如果该tmp缓冲块头表明缓冲块既
         // 没有修改也没有锁定标志置位，则说明已为指定设备上的块取得对应的高速
         // 缓冲块，则退出循环。否则我们就继续执行本循环，看看能否找到一个BANDNESS()
         // 最小的缓冲块。
-		if (!bh || BADNESS(tmp)<BADNESS(bh)) {
+		if (!bh || BADNESS(tmp)<BADNESS(bh)) {	// tsz: #personal tmp比bn更好，bh=tmp
 			bh = tmp;
-			if (!BADNESS(tmp))
+			if (!BADNESS(tmp))	// tsz: #personal 没锁也不脏，直接返回
 				break;
 		}
 /* and repeat until we find something good */
-	} while ((tmp = tmp->b_next_free) != free_list);
+	} while ((tmp = tmp->b_next_free) != free_list);	// tsz: #personal 循环找到最好的选择
     // 如果循环检查发现所有缓冲块都正在被使用(所有缓冲块的头部引用计数都>0)中，
     // 则睡眠等待有空闲缓冲块可用。当有空闲缓冲块可用时本进程会呗明确的唤醒。
     // 然后我们跳转到函数开始处重新查找空闲缓冲块。
 	if (!bh) {
 		sleep_on(&buffer_wait);
 		goto repeat;
-	}
+	}	// tsz: #personal #univ 这种可能分配不到的都必须加个**循环+睡眠+睡眠后的检查**来持续寻找
     // 执行到这里，说明我们已经找到了一个比较合适的空闲缓冲块了。于是先等待该缓冲区
     // 解锁。如果在我们睡眠阶段该缓冲区又被其他任务使用的话，只好重复上述寻找过程。
-	wait_on_buffer(bh);	// tsz: #personal wait_on_buffer会调用sleep_on，而sleep_on中会调用schedule()
-	if (bh->b_count)
+	wait_on_buffer(bh);	// tsz: #personal wait_on_bufferh会等待直到解锁，等待通过调用sleep_on，而sleep_on中会调用schedule()
+	if (bh->b_count)	// tsz: #personal #note #univ 每次sleep回来都要检查东西是否发生变化
 		goto repeat;
     // 如果该缓冲区已被修改，则将数据写盘，并再次等待缓冲区解锁。同样地，若该缓冲区
     // 又被其他任务使用的话，只好再重复上述寻找过程。
 	while (bh->b_dirt) {
 		sync_dev(bh->b_dev);
 		wait_on_buffer(bh);
-		if (bh->b_count)
+		if (bh->b_count)	// tsz: #personal 又检查，体现了上面说的内容
 			goto repeat;
 	}
 /* NOTE!! While we slept waiting for this block, somebody else might */
 /* already have added "this" block to the cache. check it */
     // 在高速缓冲hash表中检查指定设备和块的缓冲块是否乘我们睡眠之际已经被加入
     // 进去。如果是的话，就再次重复上述寻找过程。
-	if (find_buffer(dev,block))
+	// tsz: #personal #note #univ 上面的过程都是在睡眠过程中是否一些重要基本要求发生改变进行检查，如果有问题则重来；而这里则是进行是否睡眠回来后有了更好的选择，如果有则重来
+	if (find_buffer(dev,block))	// tsz: #personal 直接调用最底层的find_buffer进行一个简单判断，如果有，再去repeat进行完整的取用这个buffer
 		goto repeat;
 /* OK, FINALLY we know that this buffer is the only one of it's kind, */
 /* and that it's unused (b_count=0), unlocked (b_lock=0), and clean */
     // 于是让我们占用此缓冲块。置引用计数为1，复位修改标志和有效(更新)标志。
+	// tsz: #personal 当一切都检查完之后才开始改变buffer_head的内容
 	bh->b_count=1;
 	bh->b_dirt=0;
 	bh->b_uptodate=0;
@@ -379,6 +384,7 @@ void brelse(struct buffer_head * buf)
 // 该函数根据指定的设备号 dev 和数据块号 block，首先在高速缓冲区中申请一块
 // 缓冲块。如果该缓冲块中已经包含有有效的数据就直接返回该缓冲块指针，否则
 // 就从设备中读取指定的数据块到该缓冲块中并返回缓冲块指针。
+// tsz: #personal #fsum 找到bh，并确保对应块被读到buffer(包含了读blk操作)
 struct buffer_head * bread(int dev,int block)
 {
 	struct buffer_head * bh;
@@ -394,7 +400,7 @@ struct buffer_head * bread(int dev,int block)
     // 等待指定数据块被读入，并等待缓冲区解锁。在睡眠醒来之后，如果该缓冲区已
     // 更新，则返回缓冲区头指针，退出。否则表明读设备操作失败，于是释放该缓
     // 冲区，返回NULL，退出。
-	ll_rw_block(READ,bh);	// tsz: #course ll可能时low level的意思;#personal 在ll_rw_blk.c，核心的是用make_request函数对块设备提交请求;分成操作系统和硬件两部分的工作
+	ll_rw_block(READ,bh);	// tsz: #course ll可能时low level的意思;#personal 在ll_rw_blk.c，核心的是用make_request函数对块设备提交请求;分成操作系统和硬件两部分的工作;通过这个将物理块和新分配的bh连接起来
 	wait_on_buffer(bh);
 	if (bh->b_uptodate)
 		return bh;

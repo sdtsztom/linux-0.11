@@ -61,6 +61,7 @@ static inline void unlock_buffer(struct buffer_head * bh)
  * It disables interrupts so that it can muck with the
  * request-lists in peace.
  */
+// tsz: #personal #fsum 将请求项插入或直接执行 
 static void add_request(struct blk_dev_struct * dev, struct request * req)
 {
 	struct request * tmp;
@@ -68,23 +69,24 @@ static void add_request(struct blk_dev_struct * dev, struct request * req)
 	req->next = NULL;
 	cli();
 	if (req->bh)
-		req->bh->b_dirt = 0;
+		req->bh->b_dirt = 0;	// tsz: #course 清脏位
 	if (!(tmp = dev->current_request)) {
 		dev->current_request = req;
 		sti();
-		(dev->request_fn)();
+		(dev->request_fn)();	// tsz: #personal 执行处理函数
 		return;
 	}
 	for ( ; tmp->next ; tmp=tmp->next)
-		if ((IN_ORDER(tmp,req) || 
+		if ((IN_ORDER(tmp,req) || 	// tsz: #personal IN_ORDER是验证一定限制下前者的sect小于后者的sect;这里是给前两个判断条件(A||B)加了括号
 		    !IN_ORDER(tmp,tmp->next)) &&
 		    IN_ORDER(req,tmp->next))
 			break;
-	req->next=tmp->next;
+	req->next=tmp->next;	// tsz: #personal #impo 最后的结果是按序插入
 	tmp->next=req;
 	sti();
 }
 
+// tsz: #personal #fusm 检查必要性，申请req，修改seq并开始调用add_request
 static void make_request(int major,int rw, struct buffer_head * bh)
 {
 	struct request * req;
@@ -102,8 +104,8 @@ static void make_request(int major,int rw, struct buffer_head * bh)
 	}
 	if (rw!=READ && rw!=WRITE)
 		panic("Bad block dev command, must be R/W/RA/WA");
-	lock_buffer(bh);
-	if ((rw == WRITE && !bh->b_dirt) || (rw == READ && bh->b_uptodate)) {
+	lock_buffer(bh);	// tsz: #personal #impo 注意和wait_on_buffer的区别：后者得到buffer无锁，可以被其他进程使用
+	if ((rw == WRITE && !bh->b_dirt) || (rw == READ && bh->b_uptodate)) {	// tsz: #course 检查操作必要性：不脏不用写，一致了不用读，出现这种没有的事情就直接不响应请求，直接解锁并返回
 		unlock_buffer(bh);
 		return;
 	}
@@ -112,21 +114,21 @@ repeat:
  * we want some room for reads: they take precedence. The last third
  * of the requests are only for reads.
  */
-	if (rw == READ)
-		req = request+NR_REQUEST;
+	if (rw == READ)	// tsz: #personal req是开始寻找的位置;#univ 从后往前找
+		req = request+NR_REQUEST;	// tsz: #course 因为读比写的概率高，而且读比写着急，所以从最后面开始寻找有空的request，写只从2/3开始寻找
 	else
 		req = request+((NR_REQUEST*2)/3);
 /* find an empty request */
 	while (--req >= request)
-		if (req->dev<0)
+		if (req->dev<0)	// tsz: #course -1 if no request,0-6对应7种设备
 			break;
 /* if none found, sleep on new requests: check for rw_ahead */
 	if (req < request) {
-		if (rw_ahead) {
+		if (rw_ahead) {	// tsz: #personal 说明预读写在碰过分配不到请求项时就放弃
 			unlock_buffer(bh);
 			return;
 		}
-		sleep_on(&wait_for_request);
+		sleep_on(&wait_for_request);	// tsz: #personal wait_for_request为NULL，传入的是指向NULL的指针;#note #impo 这种sleep on在task_struct的内核栈中形成链表
 		goto repeat;
 	}
 /* fill up the request-info, and add it to the queue */
@@ -134,20 +136,21 @@ repeat:
 	req->cmd = rw;
 	req->errors=0;
 	req->sector = bh->b_blocknr<<1;
-	req->nr_sectors = 2;
-	req->buffer = bh->b_data;
+	req->nr_sectors = 2;	// tsz: #course 两个扇区一个块
+	req->buffer = bh->b_data;	// tsz: #personal 这里和下面第二行完成了req和bh挂接
 	req->waiting = NULL;
 	req->bh = bh;
 	req->next = NULL;
 	add_request(major+blk_dev,req);	// tsz: #course 核心
 }
 
+// tsz: #personal #fsum 检查合法性
 void ll_rw_block(int rw, struct buffer_head * bh)
 {
 	unsigned int major;	// tsz: #book2 主设备号，硬盘主设备号是3
 
-	if ((major=MAJOR(bh->b_dev)) >= NR_BLK_DEV ||
-	!(blk_dev[major].request_fn)) {
+	if ((major=MAJOR(bh->b_dev)) >= NR_BLK_DEV ||	// tsz: #course 判断是不是设备
+	!(blk_dev[major].request_fn)) {	// tsz: #course 判断是否挂载了请求函数
 		printk("Trying to read nonexistent block-device\n\r");
 		return;
 	}
