@@ -189,7 +189,7 @@ static void hd_out(unsigned int drive,unsigned int nsect,unsigned int sect,
 		panic("Trying to write bad sector");
 	if (!controller_ready())
 		panic("HD controller not ready");
-	do_hd = intr_addr;
+	do_hd = intr_addr;	// tsz: #course 挂钩子
 	outb_p(hd_info[drive].ctl,HD_CMD);
 	port=HD_DATA;
 	outb_p(hd_info[drive].wpcom>>2,++port);
@@ -198,7 +198,7 @@ static void hd_out(unsigned int drive,unsigned int nsect,unsigned int sect,
 	outb_p(cyl,++port);
 	outb_p(cyl>>8,++port);
 	outb_p(0xA0|(drive<<4)|head,++port);
-	outb(cmd,++port);
+	outb(cmd,++port);	// tsz: #course 这里控制读写
 }
 
 static int drive_busy(void)
@@ -300,8 +300,8 @@ void do_hd_request(void)
 	unsigned int sec,head,cyl;
 	unsigned int nsect;
 
-	INIT_REQUEST;
-	dev = MINOR(CURRENT->dev);
+	INIT_REQUEST;	// tsz: #personal 检查正确性
+	dev = MINOR(CURRENT->dev);	// tsz: #course CURRENT为当前请求项
 	block = CURRENT->sector;
 	if (dev >= 5*NR_HD || block+2 > hd[dev].nr_sects) {
 		end_request(0);
@@ -328,7 +328,7 @@ void do_hd_request(void)
 		return;
 	}	
 	if (CURRENT->cmd == WRITE) {
-		hd_out(dev,nsect,sec,head,cyl,WIN_WRITE,&write_intr);
+		hd_out(dev,nsect,sec,head,cyl,WIN_WRITE,&write_intr);	// tsz: #course 写中断，钩子，对照下面的READ的调用，可以发现读写的过程就是钩子有区别（文件读写的代码大部分一致-90%，就在这分叉）
 		for(i=0 ; i<3000 && !(r=inb_p(HD_STATUS)&DRQ_STAT) ; i++)
 			/* nothing */ ;
 		if (!r) {

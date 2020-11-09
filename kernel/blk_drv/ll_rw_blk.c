@@ -104,7 +104,7 @@ static void make_request(int major,int rw, struct buffer_head * bh)
 	}
 	if (rw!=READ && rw!=WRITE)
 		panic("Bad block dev command, must be R/W/RA/WA");
-	lock_buffer(bh);	// tsz: #personal #impo 注意和wait_on_buffer的区别：后者得到buffer无锁，可以被其他进程使用
+	lock_buffer(bh);	// tsz: #personal #impo 注意和wait_on_buffer的区别：后者得到buffer无锁，可以被其他进程使用;注意这里锁住了block，当硬盘完成这个请求时才会将将b_lock解锁，等待数据的进程可以wait在bh->buffer_wait上
 	if ((rw == WRITE && !bh->b_dirt) || (rw == READ && bh->b_uptodate)) {	// tsz: #course 检查操作必要性：不脏不用写，一致了不用读，出现这种没有的事情就直接不响应请求，直接解锁并返回
 		unlock_buffer(bh);
 		return;

@@ -57,7 +57,7 @@ static inline void wait_on_buffer(struct buffer_head * bh)
 {
 	cli();                          // 关中断	// tsz: #course #think 为什么要关中断
 	while (bh->b_lock)              // 如果已被上锁则进程进入睡眠，等待其解锁	// tsz: #course 注意这里不能用if;#note 非常通用的设计注意点，要考虑wait过程中发生的复杂情况
-		sleep_on(&bh->b_wait);
+		sleep_on(&bh->b_wait);	// tsz: #course #note #impo 切换走了，但是切换走了的进程并不一定是关中断，由其TSS决定，所以进程关中断是关自己的中断;tss_struct见sched.h
 	sti();                          // 开中断
 }
 
@@ -401,7 +401,7 @@ struct buffer_head * bread(int dev,int block)
     // 更新，则返回缓冲区头指针，退出。否则表明读设备操作失败，于是释放该缓
     // 冲区，返回NULL，退出。
 	ll_rw_block(READ,bh);	// tsz: #course ll可能时low level的意思;#personal 在ll_rw_blk.c，核心的是用make_request函数对块设备提交请求;分成操作系统和硬件两部分的工作;通过这个将物理块和新分配的bh连接起来
-	wait_on_buffer(bh);
+	wait_on_buffer(bh);	// tsz: #course 等待硬盘写回
 	if (bh->b_uptodate)
 		return bh;
 	brelse(bh);

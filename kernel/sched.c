@@ -178,7 +178,7 @@ void schedule(void)
         // 仍然为-1，next=0),则退出while(1)_的循环，执行switch任务切换操作。否则就根据每个
         // 任务的优先权值，更新每一个任务的counter值，然后回到while(1)循环。counter值的计算
         // 方式counter＝counter/2 + priority.注意：这里计算过程不考虑进程的状态。
-		if (c) break;
+		if (c) break;	// tsz: #course 都挂起了的情况，break，跳到进程0去
 		for(p = &LAST_TASK ; p > &FIRST_TASK ; --p)
 			if (*p)
 				(*p)->counter = ((*p)->counter >> 1) +

@@ -60,7 +60,7 @@ struct tss_struct {	// tsz: #personal #note #impo 基本上就是一堆寄存器
 	long	ss2;		/* 16 high bits zero */
 	long	cr3;	//tsz: #course 页目录表的基址
 	long	eip;
-	long	eflags;
+	long	eflags;	// tsz: #personal #note #impo 这里记录了eflags，形成了每个进程关自己的中断
 	long	eax,ecx,edx,ebx;
 	long	esp;
 	long	ebp;
