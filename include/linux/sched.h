@@ -177,9 +177,9 @@ __asm__("cmpl %%ecx,current\n\t" \	// tsz: #book 如果n是当前进程，直接
 	"movw %%dx,%1\n\t" \	// tsz: #book 把tssn的选择符赋值给edx的低字节，即tmp.b
 	"xchgl %%ecx,current\n\t" \	// tsz: #book 将current和eax调换
 	"ljmp *%0\n\t" \	// tsz: #book jmp到一个tss选择符，会触发进程切换(见IA32)，CPU自动保存当前状态到原进程的tss，并load新进程的tss;#note 这里执行完就去执行进程1的int80后一句去了;#note 注意这里是从0特权的进程直接跳到了3特权的进程1(要看跳转目标任务的tss在怎么特权态，他就跳到了什么特权态)
-	"cmpl %%ecx,last_task_used_math\n\t" \
+	"cmpl %%ecx,last_task_used_math\n\t" \	// tsz: #book 如果切换的是当前继承，则直接返回；但所有进程都不是TASK_RUNNING的时候就会出现
 	"jne 1f\n\t" \
-	"clts\n" \
+	"clts\n" \	// tsz: #book 清除CR0中的切换任务标志
 	"1:" \
 	::"m" (*&__tmp.a),"m" (*&__tmp.b), \	// tsz: #book 分别对应跳转的eip和cs
 	"d" (_TSS(n)),"c" ((long) task[n])); \	// tsz: #book edx位tssn的index，ecx为传给task[n]

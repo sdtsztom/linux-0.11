@@ -24,8 +24,8 @@ struct request {	// tsz: #personal 请求项的结构
 	int dev;		/* -1 if no request */
 	int cmd;		/* READ or WRITE */
 	int errors;
-	unsigned long sector;
-	unsigned long nr_sectors;
+	unsigned long sector;	// 起始扇区（一块等于两扇区）
+	unsigned long nr_sectors;	// 读写扇区数
 	char * buffer;
 	struct task_struct * waiting;
 	struct buffer_head * bh;

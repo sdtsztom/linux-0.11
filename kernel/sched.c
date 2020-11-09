@@ -178,7 +178,7 @@ void schedule(void)
         // 仍然为-1，next=0),则退出while(1)_的循环，执行switch任务切换操作。否则就根据每个
         // 任务的优先权值，更新每一个任务的counter值，然后回到while(1)循环。counter值的计算
         // 方式counter＝counter/2 + priority.注意：这里计算过程不考虑进程的状态。
-		if (c) break;	// tsz: #course 都挂起了的情况，break，跳到进程0去
+		if (c) break;	// tsz: #course 都挂起了的情况，break，跳到进程0(next初始化为0)去
 		for(p = &LAST_TASK ; p > &FIRST_TASK ; --p)
 			if (*p)
 				(*p)->counter = ((*p)->counter >> 1) +
@@ -271,8 +271,8 @@ repeat:	current->state = TASK_INTERRUPTIBLE;
 		tmp->state=0;
 }
 
-// 唤醒*p指向的让任务。*p是任务等待队列头指针。由于新等待任务是插入在等待队列头指针处的，
-// 因此唤醒的是最后进入等待队列的任务。
+// 唤醒*p指向的任务。*p是任务等待队列头指针。由于新等待任务是插入在等待队列头指针处的，
+// #note 因此唤醒的是最后进入等待队列的任务。
 void wake_up(struct task_struct **p)
 {
 	if (p && *p) {

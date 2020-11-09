@@ -72,7 +72,7 @@ void rd_load(void)
 {
 	struct buffer_head *bh;
 	struct super_block	s;
-	int		block = 256;	/* Start at block 256 */
+	int		block = 256;	/* Start at block 256 */	// tsz: #book 软盘上的256扇区开始是虚拟盘的信息
 	int		i = 1;
 	int		nblocks;
 	char		*cp;		/* Move pointer */
@@ -83,17 +83,17 @@ void rd_load(void)
 		(int) rd_start);
 	if (MAJOR(ROOT_DEV) != 2)
 		return;
-	bh = breada(ROOT_DEV,block+1,block,block+2,-1);
+	bh = breada(ROOT_DEV,block+1,block,block+2,-1);	// tsz: #book 相对于bread，可以预读多个块，返回第一个块的bh;这里读了引导块、超级块;in buffer.c
 	if (!bh) {
 		printk("Disk error while looking for ramdisk!\n");
 		return;
 	}
 	*((struct d_super_block *) &s) = *((struct d_super_block *) bh->b_data);
 	brelse(bh);
-	if (s.s_magic != SUPER_MAGIC)
+	if (s.s_magic != SUPER_MAGIC)	// tsz: #book 如果不等，说明不是minix文件系统
 		/* No ram disk image present, assume normal floppy boot */
 		return;
-	nblocks = s.s_nzones << s.s_log_zone_size;
+	nblocks = s.s_nzones << s.s_log_zone_size;	// tsz: #book 算出虚拟盘块数
 	if (nblocks > (rd_length >> BLOCK_SIZE_BITS)) {
 		printk("Ram disk image too big!  (%d blocks, %d avail)\n", 
 			nblocks, rd_length >> BLOCK_SIZE_BITS);
@@ -112,7 +112,7 @@ void rd_load(void)
 				block);
 			return;
 		}
-		(void) memcpy(cp, bh->b_data, BLOCK_SIZE);
+		(void) memcpy(cp, bh->b_data, BLOCK_SIZE);	// tsz: #personal 将数据不断拷贝到rd_start
 		brelse(bh);
 		printk("\010\010\010\010\010%4dk",i);
 		cp += BLOCK_SIZE;
@@ -121,5 +121,5 @@ void rd_load(void)
 		i++;
 	}
 	printk("\010\010\010\010\010done \n");
-	ROOT_DEV=0x0101;
+	ROOT_DEV=0x0101;	// tsz: #book 设置虚拟盘为根设备
 }

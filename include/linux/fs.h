@@ -69,7 +69,7 @@ struct buffer_head {	// tsz: #personal 34B;下面的注释来自赵炯的书
 	char * b_data;			/* pointer to data block (1024 bytes) */	//指针
 	unsigned long b_blocknr;	/* block number */	//块号
 	unsigned short b_dev;		/* device (0 = free) */	//数据源的设备号
-	unsigned char b_uptodate;	//更新标志：表示数据是否已经更新
+	unsigned char b_uptodate;	//更新标志：表示数据是否已经更新	// tsz: #course #think b_uptodate的作用
 	unsigned char b_dirt;		/* 0-clean,1-dirty */	
 	unsigned char b_count;		/* users using this block */
 	unsigned char b_lock;		/* 0 - ok, 1 -locked */

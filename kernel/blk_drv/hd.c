@@ -134,24 +134,24 @@ int sys_setup(void * BIOS)
 		hd[i*5].start_sect = 0;
 		hd[i*5].nr_sects = 0;
 	}
-	// tsz: #book 第1个个物理盘设备号是0x300，第2个是0x305，读每个物理硬盘的0号块，即引导块，有分区信息
+	// tsz: #book 第1个个物理盘设备号是0x300，第2个是0x305，读每个物理硬盘的0号块，即引导块（注意这个系统中一个块为两个扇区），有分区信息
 	for (drive=0 ; drive<NR_HD ; drive++) {
 		if (!(bh = bread(0x300 + drive*5,0))) {	// tsz: #course 300的含义其实是将第9位设置成硬盘的设备号3，在这里传入设备号后在ll_rw_block()中取出设备号并找到对应的blk_dev
 			printk("Unable to read partition table of drive %d\n\r",
 				drive);
 			panic("");
 		}
-		if (bh->b_data[510] != 0x55 || (unsigned char)
+		if (bh->b_data[510] != 0x55 || (unsigned char)	// tsz: #book 硬盘信息有效位标志
 		    bh->b_data[511] != 0xAA) {
 			printk("Bad partition table on drive %d\n\r",drive);
 			panic("");
 		}
-		p = 0x1BE + (void *)bh->b_data;
+		p = 0x1BE + (void *)bh->b_data;	// tsz: #book 根据引导块中的信息设置hd[]
 		for (i=1;i<5;i++,p++) {
 			hd[i+5*drive].start_sect = p->start_sect;
 			hd[i+5*drive].nr_sects = p->nr_sects;
 		}
-		brelse(bh);
+		brelse(bh);	// tsz: #book 引用数-1
 	}
 	if (NR_HD)
 		printk("Partition table%s ok.\n\r",(NR_HD>1)?"s":"");
@@ -189,7 +189,7 @@ static void hd_out(unsigned int drive,unsigned int nsect,unsigned int sect,
 		panic("Trying to write bad sector");
 	if (!controller_ready())
 		panic("HD controller not ready");
-	do_hd = intr_addr;	// tsz: #course 挂钩子
+	do_hd = intr_addr;	// tsz: #course 挂钩子;现代操作系统要让中断处理函数尽可能短，开一个线程去处理，这样可以让中断尽可能多地进来
 	outb_p(hd_info[drive].ctl,HD_CMD);
 	port=HD_DATA;
 	outb_p(hd_info[drive].wpcom>>2,++port);
@@ -256,16 +256,16 @@ static void read_intr(void)
 		do_hd_request();
 		return;
 	}
-	port_read(HD_DATA,CURRENT->buffer,256);
+	port_read(HD_DATA,CURRENT->buffer,256);	// tsz: #personal 将输入读到bh指向的的buffer里，256是代表256字，即512字节
 	CURRENT->errors = 0;
 	CURRENT->buffer += 512;
 	CURRENT->sector++;
-	if (--CURRENT->nr_sectors) {
-		do_hd = &read_intr;
+	if (--CURRENT->nr_sectors) {	// tsz: #personal 若还有扇区没读
+		do_hd = &read_intr;	// tsz: #personal 继续挂载中断函数;#ques 中断函数在每次操作完会被清除?
 		return;
 	}
 	end_request(1);
-	do_hd_request();
+	do_hd_request();	// tsz: #course #note #impo #desi #universal 造成循环去处理，这是通过中断去不断执行;#personal 不依赖于任何进程;注意这个循环不是永久的，前提是有请求项在，即只要还有请求项，就一直循环
 }
 
 static void write_intr(void)
@@ -301,11 +301,11 @@ void do_hd_request(void)
 	unsigned int nsect;
 
 	INIT_REQUEST;	// tsz: #personal 检查正确性
-	dev = MINOR(CURRENT->dev);	// tsz: #course CURRENT为当前请求项
+	dev = MINOR(CURRENT->dev);	// tsz: #course CURRENT为当前请求项，定义在blk.h;注意CURRENT不依靠调用，可以被循环执行
 	block = CURRENT->sector;
 	if (dev >= 5*NR_HD || block+2 > hd[dev].nr_sects) {
 		end_request(0);
-		goto repeat;
+		goto repeat;	// 该标号在blk.h最后面	// tsz: #personal 如果没有待处理的request了;#impo 在这里进行返回;并且处理的循环终止了
 	}
 	block += hd[dev].start_sect;
 	dev /= 5;
@@ -317,18 +317,18 @@ void do_hd_request(void)
 	nsect = CURRENT->nr_sectors;
 	if (reset) {
 		reset = 0;
-		recalibrate = 1;
-		reset_hd(CURRENT_DEV);
+		recalibrate = 1;	// tsz: #personal calibrate：校准
+		reset_hd(CURRENT_DEV);	// tsz: #book 将通过调用hd_out向硬盘发送WIN_SPECIFY命令，建立读盘必要参数
 		return;
 	}
 	if (recalibrate) {
 		recalibrate = 0;
-		hd_out(dev,hd_info[CURRENT_DEV].sect,0,0,0,
+		hd_out(dev,hd_info[CURRENT_DEV].sect,0,0,0,	// tsz: #book 向硬盘发送WIN_RESTORE命令，将磁头移动到0柱面，以便从硬盘上读取数据
 			WIN_RESTORE,&recal_intr);
 		return;
 	}	
 	if (CURRENT->cmd == WRITE) {
-		hd_out(dev,nsect,sec,head,cyl,WIN_WRITE,&write_intr);	// tsz: #course 写中断，钩子，对照下面的READ的调用，可以发现读写的过程就是钩子有区别（文件读写的代码大部分一致-90%，就在这分叉）
+		hd_out(dev,nsect,sec,head,cyl,WIN_WRITE,&write_intr);	// tsz: #course 写中断，（中断的)钩子，对照下面的READ的调用，可以发现读写的过程就是钩子有区别（文件读写的代码大部分一致-90%，就在这分叉）
 		for(i=0 ; i<3000 && !(r=inb_p(HD_STATUS)&DRQ_STAT) ; i++)
 			/* nothing */ ;
 		if (!r) {

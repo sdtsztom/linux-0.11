@@ -165,7 +165,7 @@ void main(void)		/* This really IS void, no error here. */
 	else if (memory_end > 6*1024*1024)          // 否则若内存>6Mb,则设置缓冲区末端=2Mb
 		buffer_memory_end = 2*1024*1024;
 	else
-		buffer_memory_end = 1*1024*1024;        // 否则设置缓冲区末端=1Mb
+		buffer_memory_end = 1*1024*1024;        // 否则设置缓冲区末端=1Mb	// tsz: #personal #ques 从1mb的末端开始，BIOS的区域已经用不到了么?
 	main_memory_start = buffer_memory_end;	// tsz: #personal 缓冲区结束位置就是主存起始位置
     // 如果在Makefile文件中定义了内存虚拟盘符号RAMDISK,则初始化虚拟盘。此时主内存将减少。
 #ifdef RAMDISK	//tsz: #course 虚拟盘，在makefile中设置虚拟盘的大小，见ramdisk.c

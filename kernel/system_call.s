@@ -308,12 +308,12 @@ hd_interrupt:
 # 寄存器后就将do_hd指针变量置为NULL。然后测试得到的函数指针，若该指针为空，则
 # 赋予该指针指向C函数unexpected_hd_interrupt()，以处理未知硬盘中断。
 1:	xorl %edx,%edx
-	xchgl do_hd,%edx
+	xchgl do_hd,%edx	// tsz: #personal 钩子函数地址
 	testl %edx,%edx             # 测试函数指针是否为NULL
 	jne 1f                      # 若空，则使指针指向C函数unexpected_hd_interrup().
 	movl $unexpected_hd_interrupt,%edx
 1:	outb %al,$0x20              # 送主8259A中断控制器EOI命令(结束硬件中断)
-	call *%edx		# "interesting" way of handling intr.
+	call *%edx		# "interesting" way of handling intr.	// tsz: #personal 执行钩子函数
 	pop %fs                     # 上句调用do_hd指向C函数
 	pop %es
 	pop %ds

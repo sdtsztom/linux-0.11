@@ -476,7 +476,7 @@ struct buffer_head * breada(int dev,int first, ...)
 	if (!bh->b_uptodate)
 		ll_rw_block(READ,bh);
     // 然后顺序取可变参数表中其他预读块号，并作与上面同样处理，但不引用。
-	while ((first=va_arg(args,int))>=0) {
+	while ((first=va_arg(args,int))>=0) {	// tsz: #personal #note 与一般不同的判断结束的方式，优点在于不容易越界，count不用数;缺点在于第一个参数的使用方式不优雅、-1的判断不通用
 		tmp=getblk(dev,first);
 		if (tmp) {
 			if (!tmp->b_uptodate)
