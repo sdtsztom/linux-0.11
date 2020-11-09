@@ -188,11 +188,11 @@ static struct super_block * read_super(int dev)
 	}
 	*((struct d_super_block *) s) =
 		*((struct d_super_block *) bh->b_data);
-	brelse(bh);
+	brelse(bh);	// tsz: #personal #impo 注意这个数据由于其信息被super_block记下了，所以可以释放
     // 现在我们从设备dev上得到了文件系统的超级块，于是开始检查这个超级块的有效性并从设备
     // 上读取i节点位图和逻辑块位图等信息。如果所读取的超级块的文件系统魔数字段不对，说明
     // 设备上不是正确的文件系统，因此同上面一样，释放上面选定的超级块数组中的项，并解锁该
-    // 项，返回空指针退出。对于该版Linux内核，只支持MINIX文件系统1.0版本，其魔数是0x1371。
+    // #note 项，返回空指针退出。对于该版Linux内核，只支持MINIX文件系统1.0版本，其魔数是0x1371。
 	if (s->s_magic != SUPER_MAGIC) {
 		s->s_dev = 0;
 		free_super(s);
@@ -207,8 +207,8 @@ static struct super_block * read_super(int dev)
 	for (i=0;i<Z_MAP_SLOTS;i++)
 		s->s_zmap[i] = NULL;
 	block=2;
-	for (i=0 ; i < s->s_imap_blocks ; i++)
-		if ((s->s_imap[i]=bread(dev,block)))
+	for (i=0 ; i < s->s_imap_blocks ; i++)	// tsz: #personal 即超级块里记载了i节点位图和逻辑块位图占用的块数
+		if ((s->s_imap[i]=bread(dev,block)))	// tsz: #book #impo 这里的dev决定了到时候请求函数为do_rd_request;并且其不会发生像硬盘那样的中断
 			block++;
 		else
 			break;
@@ -373,7 +373,7 @@ void mount_root(void)
     // 并等待按键。
 	for(i=0;i<NR_FILE;i++)
 		file_table[i].f_count=0;                        // 初始化文件表
-	if (MAJOR(ROOT_DEV) == 2) {
+	if (MAJOR(ROOT_DEV) == 2) {	// tsz: #book 如果是读软盘
 		printk("Insert root floppy and press ENTER");   // 提示插入根文件系统盘
 		wait_for_keypress();
 	}

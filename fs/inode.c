@@ -13,7 +13,7 @@
 #include <asm/system.h>
 
 // 内存中i节点表(NR_INODE=32)
-struct m_inode inode_table[NR_INODE]={{0,},};
+struct m_inode inode_table[NR_INODE]={{0,},};	// tsz: #book 用来控制打开不同文件的最大数，最多32个
 
 // 读指定i节点号的i节点信息
 static void read_inode(struct m_inode * inode);
@@ -373,8 +373,8 @@ struct m_inode * iget(int dev,int nr)
 	empty = get_empty_inode();
     // 接着扫描i节点表。寻找参数指定节点号nr的i节点。并递增该节点的引用次数。如果当
     // 前扫描i节点的设备号不等于指定的设备号或者节点号不等于指定的节点号，则继续扫描。
-	inode = inode_table;
-	while (inode < NR_INODE+inode_table) {
+	inode = inode_table;	// tsz: #personal inode_table是以m_inode为元素的数组
+	while (inode < NR_INODE+inode_table) {	// tsz: #book 查找参数相同的inode
 		if (inode->i_dev != dev || inode->i_num != nr) {
 			inode++;
 			continue;
@@ -383,7 +383,7 @@ struct m_inode * iget(int dev,int nr)
         // 锁过程中，i节点表可能会发生变化。所以再次进行上述相同判断。如果发生了变化，
         // 则再次重新扫描整个i节点表。
 		wait_on_inode(inode);
-		if (inode->i_dev != dev || inode->i_num != nr) {
+		if (inode->i_dev != dev || inode->i_num != nr) {	// tsz: #personal #univ #impo 每次解说回来都要进行检查
 			inode = inode_table;
 			continue;
 		}
@@ -396,7 +396,7 @@ struct m_inode * iget(int dev,int nr)
 		if (inode->i_mount) {
 			int i;
 
-			for (i = 0 ; i<NR_SUPER ; i++)
+			for (i = 0 ; i<NR_SUPER ; i++)	// tsz: #book 如果是mount点，则查找对应的超级块
 				if (super_block[i].s_imount==inode)
 					break;
 			if (i >= NR_SUPER) {
@@ -409,7 +409,7 @@ struct m_inode * iget(int dev,int nr)
             // 放回，并从安装在次i节点上的文件系统超级块中取设备号，并令i节点号为ROOT_INO，
             // 即为1.然后重新扫描整个i节点表，以获取该被安装文件系统的根i节点信息。
 			iput(inode);
-			dev = super_block[i].s_dev;
+			dev = super_block[i].s_dev;	// tsz: #book 从超级块中获取设备号
 			nr = ROOT_INO;
 			inode = inode_table;
 			continue;
@@ -417,7 +417,7 @@ struct m_inode * iget(int dev,int nr)
         // 最终我们找到了相应的i节点。因此可以放弃本函数开始处临时申请的空闲的i节点，返回
         // 找到的i节点指针。
 		if (empty)
-			iput(empty);
+			iput(empty);	// tsz: #personal iput是将i节点放回去
 		return inode;
 	}
     // 如果我们在i节点表中没有找到指定的i节点，则利用前面申请的空闲i节点empty在i节点表中
@@ -452,11 +452,11 @@ static void read_inode(struct m_inode * inode)
     // 的i节点结构而不是0--15的。因此在上面计算i节点号对应的i节点结构所在盘块时需要减1，即：
     // B=（i节点号-1)/每块含有i节点结构数。例如，节点号16的i节点结构应该在B=（16-1）/16 = 0的
     // 块上。这里我们从设备上读取该i节点所在的逻辑块，并复制指定i节点内容到inode指针所指位置处。
-	block = 2 + sb->s_imap_blocks + sb->s_zmap_blocks +
+	block = 2 + sb->s_imap_blocks + sb->s_zmap_blocks +	// tsz: #book 计算inode所在block
 		(inode->i_num-1)/INODES_PER_BLOCK;
-	if (!(bh=bread(inode->i_dev,block)))
+	if (!(bh=bread(inode->i_dev,block)))	// tsz: #book 读inode所在逻辑块进缓冲块
 		panic("unable to read i-node block");
-	*(struct d_inode *)inode =
+	*(struct d_inode *)inode =	// tsz: #book 整体复制
 		((struct d_inode *)bh->b_data)
 			[(inode->i_num-1)%INODES_PER_BLOCK];
     // 最后释放读入的缓冲块，并解锁该i节点。

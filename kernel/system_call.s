@@ -153,7 +153,7 @@ ret_from_sys_call:	# tsz: #personal 这个命名就体现出下面的代码是�
 	movl %ebx,signal(%eax)          # 重新保存signal位图信息→current->signal.
 	incl %ecx                       # 将信号调整为从1开始的数(1-32)
 	pushl %ecx                      # 信号值入栈作为调用do_signal的参数之一
-	call do_signal                  # 调用C函数信号处理程序(kernel/signal.c)
+	call do_signal                  # 调用C函数信号处理程序(kernel/signal.c)	// tsz: #book 不是进程0就会执行到这里
 	popl %eax                       # 弹出入栈的信号值
 3:	popl %eax                       # eax中含有上面入栈系统调用的返回值
 	popl %ebx
