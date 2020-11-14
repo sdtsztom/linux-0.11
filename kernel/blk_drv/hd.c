@@ -264,7 +264,7 @@ static void read_intr(void)
 		do_hd = &read_intr;	// tsz: #personal 继续挂载中断函数;#ques 中断函数在每次操作完会被清除?
 		return;
 	}
-	end_request(1);
+	end_request(1);	// tsz: #course 这个参数决定了uptodate的值
 	do_hd_request();	// tsz: #course #note #impo #desi #universal 造成循环去处理，这是通过中断去不断执行;#personal 不依赖于任何进程;注意这个循环不是永久的，前提是有请求项在，即只要还有请求项，就一直循环
 }
 

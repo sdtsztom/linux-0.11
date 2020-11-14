@@ -276,7 +276,7 @@ repeat:	current->state = TASK_INTERRUPTIBLE;
 void wake_up(struct task_struct **p)
 {
 	if (p && *p) {
-		(**p).state=0;          // 置为就绪(可运行)状态TASK_RUNNING.
+		(**p).state=0;          // 置为就绪(可运行)状态TASK_RUNNING.	// tsz: #personal #reme
 		*p=NULL;
 	}
 }

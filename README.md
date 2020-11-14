@@ -30,3 +30,4 @@ Linus曾经说过：RTFSC - Read The Fucking Source Code.
 - univ(universal)
 - desi(design principle)
 - fsum(function summary)
+- reme(remember)
