@@ -49,7 +49,7 @@ void do_rd_request(void)
 /*
  * Returns amount of memory which needs to be reserved.
  */
-long rd_init(long mem_start, int length)	// tsz: #think #ques 为什么虚拟盘没有终端?
+long rd_init(long mem_start, int length)	// tsz: #think #ques 为什么虚拟盘没有中断? #answer ramdisk在内存中，内存不是中断源
 {
 	int	i;
 	char	*cp;
