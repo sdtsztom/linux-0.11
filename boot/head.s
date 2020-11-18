@@ -13,7 +13,7 @@
  */
 .text
 .globl idt,gdt,pg_dir,tmp_floppy_area
-pg_dir:	# tsz: #book 标志内核分页机制完成后的内核起始位置
+pg_dir:	# tsz: #book 标志内核分页机制完成后的内核起始位置;#head.s在内核代码最前面，内核被移动到0，所以head.s的起始位置也是0，即pg_dir也是0;#ques 分页用的20K是怎么预留出来的?
 .globl startup_32
 startup_32:
 	movl $0x10,%eax	# tsz: #book 刚进入保护模式，第一次设置这些寄存器，这4个寄存器都指向内核数据段，0x10是gdt的第三项，即内核数据段
@@ -205,7 +205,9 @@ setup_paging:
 	xorl %eax,%eax
 	xorl %edi,%edi			/* pg_dir is at 0x000 */
 	cld;rep;stosl	# tsz: #personal cld为clear df flag,设置edi为自增方向；stosl使得eax中的内容保存到es:di的位置，并使edi每次自增4B,重复1024*5次，也就是以上一段完成了内存清零;注意格式，循环的代码在下方	#ques 这里怎么确定循环的范围?
-	movl $pg0+7,pg_dir		/* set present bit/user r/w */	# tsz: #course 在页目录表中刷各个页表的属性设置，那三位是u/s;r/w,present，111表示用户u,rw,p;000代表内核s,r,不存在;#ques 明明是内核的页表，为什么设置成用户u?#answ from cxh 0号进程在转用户态后依然需要访问页，如果设成3会导致move_to_usr_mode里的iret下条指令PAGE_FAULT
+	movl $pg0+7,pg_dir		/* set present bit/user r/w */	# tsz: #course 在页目录表中刷各个页表的属性设置，那三位是u/s;r/w,present，111表示用户u,rw,p;000代表内核s,r,不存在;
+							# #ques 明明是内核的页表，为什么设置成用户u? #answ from cxh 0号进程在转用户态后依然需要访问页，如果设成3会导致move_to_usr_mode里的iret下条指令PAGE_FAULT
+							# 补充from tk 页表项和页目录项的属性都得为用户特权，用户代码才能访问这个页。两者都得设置为可写，这个页才能写。(可以通过设置来决定内核态能否写用户特权的只读页。)
 	movl $pg1+7,pg_dir+4		/*  --------- " " --------- */
 	movl $pg2+7,pg_dir+8		/*  --------- " " --------- */
 	movl $pg3+7,pg_dir+12		/*  --------- " " --------- */

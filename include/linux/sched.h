@@ -15,7 +15,7 @@
 #if (NR_OPEN > 32)
 #error "Currently the close-on-exec-flags are in one word, max 32 files/proc"
 #endif
-
+// tsz: #personal 进程的状态
 #define TASK_RUNNING		0
 #define TASK_INTERRUPTIBLE	1
 #define TASK_UNINTERRUPTIBLE	2
@@ -170,7 +170,7 @@ struct task_struct {	// tsz: #personal #note #impo
 /* fs info */	-1,0022,NULL,NULL,NULL,0, \
 /* filp */	{NULL,}, \
 	{ \
-		{0,0}, \
+		{0,0}, \	// tsz: #personal 这个应该只起一个隔离作用，没什么特殊作用
 /* ldt */	{0x9f,0xc0fa00}, \	//tsz: #course #think 算算这个地址在哪? #answ 可能问题是算段限长： 段限长应该是160*4K=640K
 		{0x9f,0xc0f200}, \
 	}, \
@@ -203,8 +203,8 @@ extern void wake_up(struct task_struct ** p);
 #define FIRST_LDT_ENTRY (FIRST_TSS_ENTRY+1)
 #define _TSS(n) ((((unsigned long) n)<<4)+(FIRST_TSS_ENTRY<<3))	// tsz: #book 最后3位是留给特权级、表选择的，故都需要移3位，n多移1位是因为tssn\ldtn成对出现，tssn都在偶数项
 #define _LDT(n) ((((unsigned long) n)<<4)+(FIRST_LDT_ENTRY<<3))
-#define ltr(n) __asm__("ltr %%ax"::"a" (_TSS(n)))
-#define lldt(n) __asm__("lldt %%ax"::"a" (_LDT(n)))
+#define ltr(n) __asm__("ltr %%ax"::"a" (_TSS(n)))	// tsz: #personal 加载tr
+#define lldt(n) __asm__("lldt %%ax"::"a" (_LDT(n)))	// tsz: #personal 加载ldtr
 #define str(n) \
 __asm__("str %%ax\n\t" \
 	"subl %2,%%eax\n\t" \
@@ -219,17 +219,18 @@ __asm__("str %%ax\n\t" \
  */
 #define switch_to(n) {\
 struct {long a,b;} __tmp; \
-__asm__("cmpl %%ecx,current\n\t" \	// tsz: #book 如果n是当前进程，直接退出
+__asm__("cmpl %%ecx,current\n\t" \	// tsz: #think 为什么这里要比较一下 #answ #book 如果切换的是当前进程，则直接返回；但所有进程都不是TASK_RUNNING的时候就会出现
 	"je 1f\n\t" \
 	"movw %%dx,%1\n\t" \	// tsz: #book 把tssn的选择符赋值给edx的低字节，即tmp.b
 	"xchgl %%ecx,current\n\t" \	// tsz: #book 将current和eax调换
 	"ljmp *%0\n\t" \	// tsz: #book jmp到一个tss选择符，会触发进程切换(见IA32)，CPU自动保存当前状态到原进程的tss，并load新进程的tss;#note 这里执行完就去执行进程1的int80后一句去了;#note 注意这里是从0特权的进程直接跳到了3特权的进程1(要看跳转目标任务的tss在怎么特权态，他就跳到了什么特权态)
-	"cmpl %%ecx,last_task_used_math\n\t" \	// tsz: #book 如果切换的是当前继承，则直接返回；但所有进程都不是TASK_RUNNING的时候就会出现
+						// tsz: from cxh ljmp *mem64，前32位为offset(即a)，后16位段选择子(即b的低16位)，检测到是tss就没有用到a
+	"cmpl %%ecx,last_task_used_math\n\t" \
 	"jne 1f\n\t" \
 	"clts\n" \	// tsz: #book 清除CR0中的切换任务标志
 	"1:" \
 	::"m" (*&__tmp.a),"m" (*&__tmp.b), \	// tsz: #book 分别对应跳转的eip和cs
-	"d" (_TSS(n)),"c" ((long) task[n])); \	// tsz: #book edx位tssn的index，ecx为传给task[n]
+	"d" (_TSS(n)),"c" ((long) task[n])); \	// tsz: #book edx为tssn的index，ecx为传给current的task[n]
 }
 
 #define PAGE_ALIGN(n) (((n)+0xfff)&0xfffff000)

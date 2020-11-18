@@ -277,7 +277,7 @@ sys_fork:
 	pushl %edi
 	pushl %ebp
 	pushl %eax	# tsz: #course #knowl find_empty_process的返回，gcc中的规则为：int一般用eax返回，这个eax成了copy_process的nr参数，最后成了使用的task的index
-	call copy_process
+	call copy_process	# tsz: #personal 这里的call虽然也压栈，但是因为是调用copy_process函数本身压的，所以不会将其当做参数
 	addl $20,%esp               # 丢弃这里所有压栈内容。	# tsz: #course 栈往高处走，清栈
 1:	ret
 

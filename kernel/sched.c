@@ -220,7 +220,7 @@ void sleep_on(struct task_struct **p)	// tsz: #course 指针的指针，想要�
     // 让tmp指向已经在等待队列上的任务(如果有的话)，例如inode->i_wait.并且将睡眠队列头的
     // 等等指针指向当前任务。这样就把当前任务插入到了*p的等待队列中。然后将当前任务置为
     // 不可中断的等待状态，并执行重新调度。
-	tmp = *p;
+	tmp = *p;	// tsz: #personal tmp成了指向另一个进程的链接
 	*p = current;	// tsz: #course wait_for_request指向当前task_struct
 	current->state = TASK_UNINTERRUPTIBLE;
 	schedule();	// tsz: #course 核心
@@ -234,7 +234,7 @@ void sleep_on(struct task_struct **p)	// tsz: #course 指针的指针，想要�
     // 进程B置位就绪状态(唤醒)。而当轮到B进程执行时，它也才可能继续执行下面的代码。若它
     // 后面还有等待的进程C，那它也会把C唤醒等。在这前面还应该添加一行：*p = tmp.
 	if (tmp)                    // 若在其前还有存在的等待的任务，则也将其置为就绪状态(唤醒).	// tsz: #personal #note #impo #univ 一定要注意执行这行的是调度回来的本进程
-		tmp->state=0;
+		tmp->state=0;	// tsz: #personal 唤醒其链接的进程,0为TASK_RUNNING，见sched.h
 }
 
 // 将当前任务置为可中断的等待状态，并放入*p指定的等待队列中。
@@ -578,8 +578,8 @@ void sched_init(void)	//tsz: #course scheduling init，即进程调度的初始�
     // NT标志用于控制程序的递归调用(Nested Task)。当NT置位时，那么当前中断任务执行
     // iret指令时就会引起任务切换。NT指出TSS中的back_link字段是否有效。
 	__asm__("pushfl ; andl $0xffffbfff,(%esp) ; popfl");        // 复位NT标志
-	ltr(0);	//tsz: #course cpu的寄存器，指向当前进程，当进程切换的时候，就会切换这个寄存器；#personal 对应的汇编定义在sched.h
-	lldt(0);	//tsz: #course 同上
+	ltr(0);	//tsz: #course cpu的寄存器，指向当前进程，当进程切换的时候，就会切换这个寄存器；#personal 对应的汇编定义在sched.h;加载tr
+	lldt(0);	//tsz: #course 同上;加载ldtr
     // 下面代码用于初始化8253定时器。通道0，选择工作方式3，二进制计数方式。通道0的
     // 输出引脚接在中断控制主芯片的IRQ0上，它每10毫秒发出一个IRQ0请求。LATCH是初始
     // 定时计数值。
